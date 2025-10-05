@@ -1,0 +1,503 @@
+<!-- KamuiOSアップデートパネル -->
+<div id="kamui-update-panel" class="kamui-update-panel">
+  <!-- フローティングアップデートボタン -->
+  <div id="update-floating-button" class="update-floating-button">
+    <button id="update-toggle-btn" class="update-btn-primary">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+      </svg>
+      アップデート
+    </button>
+  </div>
+
+  <!-- メインパネル -->
+  <div id="update-main-panel" class="update-main-panel hidden">
+    <div class="update-panel-header">
+      <h3>KamuiOSアップデート</h3>
+      <button id="update-close-btn" class="update-close-btn">&times;</button>
+    </div>
+
+    <div class="update-panel-content">
+      <!-- システム情報セクション -->
+      <div id="system-info-section" class="update-section">
+        <h4>システム情報</h4>
+        <div id="system-info-display" class="system-info">
+          <div class="info-item">
+            <span class="info-label">バージョン:</span>
+            <span id="system-version">読み込み中...</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">ブランチ:</span>
+            <span id="git-branch">読み込み中...</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">カスタムファイル:</span>
+            <span id="custom-files-count">読み込み中...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- アップデートチェックセクション -->
+      <div id="update-check-section" class="update-section">
+        <h4>アップデート確認</h4>
+        <div class="update-actions">
+          <button id="check-update-btn" class="update-btn-secondary">
+            最新版をチェック
+          </button>
+          <div id="update-check-result" class="update-result hidden">
+            <!-- チェック結果がここに表示される -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 進捗セクション -->
+      <div id="update-progress-section" class="update-section hidden">
+        <h4>アップデート進捗</h4>
+        <div class="progress-container">
+          <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+          </div>
+          <div id="progress-text" class="progress-text">待機中...</div>
+          <div id="progress-percentage" class="progress-percentage">0%</div>
+        </div>
+      </div>
+
+      <!-- アップデート実行セクション -->
+      <div id="update-execute-section" class="update-section">
+        <div class="update-actions">
+          <button id="start-update-btn" class="update-btn-primary" disabled>
+            アップデート実行
+          </button>
+          <button id="rollback-btn" class="update-btn-warning hidden">
+            ロールバック
+          </button>
+        </div>
+      </div>
+
+      <!-- カスタムファイル管理セクション -->
+      <div id="custom-files-section" class="update-section">
+        <h4>カスタムファイル管理</h4>
+        <div class="custom-files-actions">
+          <button id="backup-custom-btn" class="update-btn-secondary">
+            カスタム設定をバックアップ
+          </button>
+          <button id="restore-custom-btn" class="update-btn-secondary">
+            カスタム設定を復元
+          </button>
+          <button id="view-custom-files-btn" class="update-btn-info">
+            カスタムファイル一覧
+          </button>
+        </div>
+        <div id="custom-files-list" class="custom-files-list hidden">
+          <!-- カスタムファイル一覧がここに表示される -->
+        </div>
+      </div>
+
+      <!-- ログセクション -->
+      <div id="update-logs-section" class="update-section">
+        <h4>アップデートログ</h4>
+        <div class="log-actions">
+          <button id="toggle-logs-btn" class="update-btn-info">
+            ログを表示/非表示
+          </button>
+          <button id="clear-logs-btn" class="update-btn-secondary">
+            ログをクリア
+          </button>
+        </div>
+        <div id="update-logs" class="update-logs hidden">
+          <div class="log-content">
+            アップデートログがここに表示されます...
+          </div>
+        </div>
+      </div>
+
+      <!-- アップデート履歴セクション -->
+      <div id="update-history-section" class="update-section">
+        <details>
+          <summary>アップデート履歴</summary>
+          <div id="update-history-list" class="update-history">
+            読み込み中...
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <!-- フッター -->
+    <div class="update-panel-footer">
+      <div class="update-status">
+        <span id="update-status-text">準備完了</span>
+        <div id="update-spinner" class="spinner hidden"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- アップデート通知トースト -->
+<div id="update-toast" class="update-toast hidden">
+  <div class="toast-content">
+    <span id="toast-message"></span>
+    <button id="toast-close" class="toast-close">&times;</button>
+  </div>
+</div>
+
+<style>
+.kamui-update-panel {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* フローティングボタン */
+.update-floating-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.update-btn-primary {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.update-btn-primary:hover {
+  background: #0056b3;
+  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+.update-btn-primary:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* メインパネル */
+.update-main-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  max-width: 90vw;
+  max-height: 80vh;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+  overflow: hidden;
+}
+
+.update-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+}
+
+.update-panel-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.update-close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.update-panel-content {
+  padding: 24px;
+  max-height: calc(80vh - 120px);
+  overflow-y: auto;
+}
+
+/* セクション */
+.update-section {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.update-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.update-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* システム情報 */
+.system-info {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.info-label {
+  font-weight: 500;
+  color: #6c757d;
+}
+
+/* 進捗バー */
+.progress-container {
+  margin-top: 12px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #28a745, #20c997);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #333;
+}
+
+.progress-percentage {
+  text-align: right;
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+/* ボタン */
+.update-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.update-btn-secondary {
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.update-btn-secondary:hover {
+  background: #5a6268;
+}
+
+.update-btn-warning {
+  background: #ffc107;
+  color: #212529;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.update-btn-warning:hover {
+  background: #e0a800;
+}
+
+.update-btn-info {
+  background: #17a2b8;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.update-btn-info:hover {
+  background: #138496;
+}
+
+/* ログ */
+.update-logs {
+  margin-top: 12px;
+}
+
+.log-content {
+  background: #000;
+  color: #0f0;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  padding: 16px;
+  border-radius: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+/* カスタムファイル一覧 */
+.custom-files-list {
+  margin-top: 12px;
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+}
+
+.custom-file-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f8f9fa;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.custom-file-item:last-child {
+  border-bottom: none;
+}
+
+.file-status {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: white;
+}
+
+.file-status.modified {
+  background: #ffc107;
+  color: #212529;
+}
+
+.file-status.untracked {
+  background: #28a745;
+}
+
+/* フッター */
+.update-panel-footer {
+  padding: 16px 24px;
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.update-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* スピナー */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e9ecef;
+  border-top: 2px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* トースト通知 */
+.update-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1002;
+  min-width: 300px;
+}
+
+.toast-content {
+  background: #333;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 12px;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ユーティリティクラス */
+.hidden {
+  display: none !important;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .update-main-panel {
+    width: 95vw;
+    max-height: 90vh;
+  }
+  
+  .update-actions {
+    flex-direction: column;
+  }
+  
+  .update-actions button {
+    width: 100%;
+  }
+}
+</style>
+
+<!-- アップデートクライアントJSを読み込み -->
+<script src="/static/js/update-client.js"></script>

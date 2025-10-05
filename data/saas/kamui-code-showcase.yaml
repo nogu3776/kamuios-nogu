@@ -1,0 +1,10 @@
+# Kamui Code Showcase
+- id: saas-kamui-code-showcase
+  category: 3
+  category_name: メディアエディタ
+  title: Kamui Code Showcase
+  summary: 複数のKamuiCode MCPを横断比較しながら即時生成できるスタジオ
+  custom_html: |
+    <link rel="stylesheet" href="/css/showcase.css">
+    <div class="kc-showcase" id="kamui-code-showcase-root"></div>
+    <script type="module" src="/js/showcase.js"></script>

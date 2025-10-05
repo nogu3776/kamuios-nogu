@@ -5,6 +5,9 @@ const cors = require('cors');
 const http = require('http');
 const https = require('https');
 
+// KamuiOSアップデート機能のAPIルートをインポート
+const updateAPI = require('./backend/routes/update-api');
+
 const app = express();
 const PORT = 3001;
 
@@ -21,6 +24,9 @@ app.use((req, res, next) => {
 
 // Serve static files from public directory
 app.use(express.static('public'));
+
+// KamuiOSアップデート機能のAPIルート
+app.use('/api', updateAPI);
 
 // Backend proxy (to local media-scanner on 7777) => single ngrok tunnelでOK
 const BACKEND_TARGET = process.env.BACKEND_TARGET || 'http://localhost:7777';

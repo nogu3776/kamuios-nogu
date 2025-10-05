@@ -50,3 +50,8 @@ data/saas/private_*.yaml
 static/data/prompts/private_*.md
 static/videos/private_*.mp4
 static/images/private_*.*
+
+# Showcase generated data (Git管理外)
+static/data/showcase/
+static/showcase/
+showcase/

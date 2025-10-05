@@ -94,17 +94,17 @@ fi
 # 環境変数の確認（デバッグ用）
 log_info "Environment variables loaded:"
 log_info "  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:0:20}...${ANTHROPIC_API_KEY: -4}"
-log_info "  CLAUDE_MCP_CONFIG_PATH: $CLAUDE_MCP_CONFIG_PATH"
+log_info "  KAMUI_CODE_CONFIG_PATH: $KAMUI_CODE_CONFIG_PATH"
 log_info "  CLAUDE_SKIP_PERMISSIONS: $CLAUDE_SKIP_PERMISSIONS"
 log_info "  CLAUDE_DEBUG: $CLAUDE_DEBUG"
 
-if [ -z "$CLAUDE_MCP_CONFIG_PATH" ]; then
-    log_error "CLAUDE_MCP_CONFIG_PATH must be set in .env file!"
+if [ -z "$KAMUI_CODE_CONFIG_PATH" ]; then
+    log_error "KAMUI_CODE_CONFIG_PATH must be set in .env file!"
     exit 1
 fi
 
-if [ ! -f "$CLAUDE_MCP_CONFIG_PATH" ]; then
-    log_error "MCP config file not found at: $CLAUDE_MCP_CONFIG_PATH"
+if [ ! -f "$KAMUI_CODE_CONFIG_PATH" ]; then
+    log_error "Kamui Code config file not found at: $KAMUI_CODE_CONFIG_PATH"
     exit 1
 fi
 

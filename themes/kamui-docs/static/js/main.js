@@ -34,9 +34,14 @@ function buildToc(){
     const h2 = sec.querySelector('h2');
     const isPrivate = sec.dataset.isPrivate === 'true';
     let title = h2 ? (h2.innerText || h2.textContent || id) : id;
-    title = title.replace(/^\s*\d+[.\-]\s*/, '');
+    const hadLockIcon = /^\s*🔒/.test(title);
+    title = title.replace(/^\s*🔒\s*/, '').trim();
+    title = title.replace(/^\s*\d+(?:-\d+)*[.\-]\s*/, '').trim();
+    if (!title) {
+      title = id.replace(/^#/, '') || '（無題）';
+    }
     // private_ファイルの場合は鍵アイコンを追加（既にHTMLで追加されている場合は重複を避ける）
-    if (isPrivate && !title.includes('🔒')) {
+    if ((isPrivate || hadLockIcon) && !/^🔒/.test(title)) {
       title = `🔒 ${title}`;
     }
     // ダッシュボード項目は除外
@@ -57,11 +62,19 @@ function buildToc(){
       g1.items.unshift({ id: '#saas-applications-overview', title: 'メインダッシュボード' });
     }
   }
-  const sortedCats = Array.from(groups.keys()).sort((a,b)=>a-b);
+  const sortedCats = Array.from(groups.keys()).sort((a,b)=>{
+    const aNum = Number.isFinite(a) ? a : Number(a);
+    const bNum = Number.isFinite(b) ? b : Number(b);
+    const aVal = Number.isFinite(aNum) ? aNum : Number.MAX_SAFE_INTEGER;
+    const bVal = Number.isFinite(bNum) ? bNum : Number.MAX_SAFE_INTEGER;
+    if (aVal === bVal) return 0;
+    return aVal - bVal;
+  });
   sortedCats.forEach((catValue, catIdx) => {
     const cat = groups.get(catValue);
     // 章名の補正: 1は常に「ダッシュボード」にする
-    const catNo = catIdx + 1;
+    const numericCat = Number(catValue);
+    const catNo = Number.isFinite(numericCat) && numericCat > 0 ? numericCat : (catIdx + 1);
     const catItem = document.createElement('div');
     catItem.className = 'tree-item';
     const catLabel = document.createElement('div');
@@ -173,25 +186,44 @@ function renumberBodyHeadingsByOrder(orderedIds){
   document.querySelectorAll('.doc-section').forEach(sec => {
     if (sec.id) secById.set(`#${sec.id}`, sec);
   });
-  const catOrder = new Map();
-  const catCounters = new Map();
-  let catNoSeq = 0;
+  let maxExplicitCat = 0;
   orderedIds.forEach(id => {
     const sec = secById.get(id);
     if (!sec) return;
-    const catVal = String(sec.dataset.cat || '0');
-    if (!catOrder.has(catVal)) {
-      catOrder.set(catVal, ++catNoSeq);
-      catCounters.set(catVal, 0);
+    const numericCat = Number(sec.dataset.cat);
+    if (Number.isFinite(numericCat) && numericCat > maxExplicitCat) {
+      maxExplicitCat = numericCat;
     }
+  });
+  const fallbackNumbers = new Map();
+  let fallbackSeq = maxExplicitCat;
+  const catCounters = new Map();
+  orderedIds.forEach(id => {
+    const sec = secById.get(id);
+    if (!sec) return;
     const h2 = sec.querySelector('h2');
     if (!h2) return;
     const raw = h2.innerText || h2.textContent || '';
-    const base = raw.replace(/^\s*\d+[.\-]\s*/, '');
-    const x = catOrder.get(catVal);
-    const y = (catCounters.get(catVal) || 0) + 1;
-    catCounters.set(catVal, y);
-    h2.textContent = `${x}-${y}. ${base}`;
+    const base = raw.replace(/^\s*\d+(?:-\d+)*[.\-]\s*/, '').trim();
+    const stripped = base.replace(/^🔒\s*/, '').trim();
+    const label = stripped || raw.trim();
+    const rawCat = sec.dataset.cat;
+    const numericCat = Number(rawCat);
+    let catNo;
+    if (Number.isFinite(numericCat) && numericCat > 0) {
+      catNo = numericCat;
+    } else {
+      if (!fallbackNumbers.has(rawCat)) {
+        fallbackSeq += 1;
+        fallbackNumbers.set(rawCat, fallbackSeq);
+      }
+      catNo = fallbackNumbers.get(rawCat);
+    }
+    const currentCount = catCounters.get(catNo) || 0;
+    const sectionIndex = currentCount + 1;
+    catCounters.set(catNo, sectionIndex);
+    const prefix = sec.dataset.isPrivate === 'true' ? '🔒 ' : '';
+    h2.textContent = `${prefix}${catNo}-${sectionIndex}. ${label}`;
   });
 }
 

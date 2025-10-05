@@ -3,10 +3,55 @@ const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
 const { exec, spawn } = require('child_process');
+
+const {
+    listServers,
+    listCategories,
+    refreshServer,
+    refreshAll
+} = require('./services/mcpRegistry');
+const jobQueue = require('./services/mcpJobQueue');
+const { generatePromptSuggestions } = require('./showcase/promptGenerator');
 const { createSession: createPtySession } = require('./ptyManager');
+const showcase = require('./showcase');
+const imageRemix = require('./image-remix');
 
 const PROJECT_ROOT = path.join(__dirname, '..');
 const SAAS_DIR = path.join(PROJECT_ROOT, 'data', 'saas');
+
+function ensureDirectorySync(targetDir) {
+    if (!targetDir) return;
+    try {
+        fs.mkdirSync(targetDir, { recursive: true });
+    } catch (err) {
+        if (err && err.code !== 'EEXIST') {
+            throw err;
+        }
+    }
+}
+
+function toSafeString(value, { maxLength = 4000, fallback = '' } = {}) {
+    if (typeof value !== 'string') return fallback;
+    const trimmed = value.trim();
+    if (!trimmed) return fallback;
+    if (!Number.isFinite(maxLength)) return trimmed;
+    return trimmed.slice(0, maxLength);
+}
+
+function toSafeId(value, fallback) {
+    const base = toSafeString(value, { maxLength: 160, fallback: '' });
+    if (base) return base;
+    return fallback || `entry-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function toSafeNumber(value, fallback = 0) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+// Showcase データ管理関数は showcase/dataService.js に移動
+const { loadShowcaseHistory, saveShowcaseHistory } = showcase.dataService;
+const { loadTemplatePreferences: loadTemplatePreferencesFile, saveTemplatePreferences: saveTemplatePreferencesFile } = showcase.dataService;
 
 // .envファイルを読み込む（dotenvパッケージなしで実装）
 function loadEnv() {
@@ -167,13 +212,13 @@ function logSanitizedEnv() {
 }
 logSanitizedEnv();
 
-// Claude Code CLI 設定
-const DEFAULT_CLAUDE_MCP_CONFIG = process.env.CLAUDE_MCP_CONFIG_PATH;
-console.log(`[ENV] CLAUDE_MCP_CONFIG_PATH=${DEFAULT_CLAUDE_MCP_CONFIG || '(not set)'}`);
+// Kamui Code 設定
+const DEFAULT_CLAUDE_MCP_CONFIG = process.env.KAMUI_CODE_CONFIG_PATH;
+console.log(`[ENV] KAMUI_CODE_CONFIG_PATH=${DEFAULT_CLAUDE_MCP_CONFIG || '(not set)'}`);
 if (DEFAULT_CLAUDE_MCP_CONFIG && fs.existsSync(DEFAULT_CLAUDE_MCP_CONFIG)) {
-    console.log(`[ENV] MCP config file exists at ${DEFAULT_CLAUDE_MCP_CONFIG}`);
+    console.log(`[ENV] Kamui Code config file exists at ${DEFAULT_CLAUDE_MCP_CONFIG}`);
 } else if (DEFAULT_CLAUDE_MCP_CONFIG) {
-    console.error(`[ENV] WARNING: MCP config file NOT found at ${DEFAULT_CLAUDE_MCP_CONFIG}`);
+    console.error(`[ENV] WARNING: Kamui Code config file NOT found at ${DEFAULT_CLAUDE_MCP_CONFIG}`);
 }
 
 // タスク管理（メモリ内）
@@ -486,8 +531,8 @@ function startClaudeTask({ prompt, mcpConfigPath, cwd, extraArgs, importance, ur
     const priorityUrgency = resolvePriorityLevel(urgency);
     
     if (!resolvedMcp) {
-        console.error('[ERROR] CLAUDE_MCP_CONFIG_PATH environment variable is not set');
-        throw new Error('MCP configuration path is required. Set CLAUDE_MCP_CONFIG_PATH environment variable.');
+        console.error('[ERROR] KAMUI_CODE_CONFIG_PATH environment variable is not set');
+        throw new Error('Kamui Code configuration path is required. Set KAMUI_CODE_CONFIG_PATH environment variable.');
     }
     
     // CLIコマンドの構築
@@ -919,11 +964,11 @@ function resolvePtyCommandConfig(payload) {
         const providedMcp = payload.mcpConfigPath && typeof payload.mcpConfigPath === 'string'
             ? payload.mcpConfigPath.trim()
             : null;
-        const resolvedMcp = providedMcp || process.env.CLAUDE_MCP_CONFIG_PATH || null;
+        const resolvedMcp = providedMcp || process.env.KAMUI_CODE_CONFIG_PATH || null;
         if (resolvedMcp) {
             args.push('--mcp-config', resolvedMcp);
         } else {
-            console.warn('[PTY] CLAUDE_MCP_CONFIG_PATH is not set; interactive session may lack MCP context');
+            console.warn('[PTY] KAMUI_CODE_CONFIG_PATH is not set; interactive session may lack MCP context');
         }
 
         const maxTurnsEnv = process.env.CLAUDE_MAX_TURNS;
@@ -1481,6 +1526,28 @@ function scanDirectory(dirPath, baseDir = null, depth = 0, maxDepth = 5) {
             const fullPath = path.join(dirPath, item);
             const relativePath = path.relative(baseDir, fullPath);
             const stat = fs.statSync(fullPath);
+
+            const toIso = (value) => {
+                if (value instanceof Date && !Number.isNaN(value.getTime())) {
+                    return value.toISOString();
+                }
+                return null;
+            };
+
+            const createdDate = stat.birthtime instanceof Date && !Number.isNaN(stat.birthtime.getTime())
+                ? stat.birthtime
+                : (stat.ctime instanceof Date && !Number.isNaN(stat.ctime.getTime()) ? stat.ctime : null);
+            const createdMs = Number.isFinite(stat.birthtimeMs) && stat.birthtimeMs > 0
+                ? stat.birthtimeMs
+                : (Number.isFinite(stat.ctimeMs) && stat.ctimeMs > 0 ? stat.ctimeMs : null);
+            const modifiedDate = stat.mtime instanceof Date && !Number.isNaN(stat.mtime.getTime())
+                ? stat.mtime
+                : null;
+            const modifiedMs = Number.isFinite(stat.mtimeMs) && stat.mtimeMs > 0
+                ? stat.mtimeMs
+                : null;
+            const ctimeDate = stat.ctime instanceof Date && !Number.isNaN(stat.ctime.getTime()) ? stat.ctime : null;
+            const ctimeMs = Number.isFinite(stat.ctimeMs) && stat.ctimeMs > 0 ? stat.ctimeMs : null;
             
             if (stat.isDirectory()) {
                 const subItems = scanDirectory(fullPath, baseDir, depth + 1, maxDepth);
@@ -1511,7 +1578,15 @@ function scanDirectory(dirPath, baseDir = null, depth = 0, maxDepth = 5) {
                     type: type,
                     ext: ext,
                     size: stat.size,
-                    modified: stat.mtime
+                    modified: toIso(modifiedDate),
+                    modifiedMs: modifiedMs,
+                    createdAt: toIso(createdDate),
+                    created: toIso(createdDate),
+                    createdMs: createdMs,
+                    birthtime: toIso(stat.birthtime),
+                    birthtimeMs: Number.isFinite(stat.birthtimeMs) ? stat.birthtimeMs : null,
+                    ctime: toIso(ctimeDate),
+                    ctimeMs: ctimeMs
                 });
             }
         });
@@ -1708,8 +1783,17 @@ const server = http.createServer((req, res) => {
     
     // 静的ファイルの配信（画像、動画、音声）
     if (req.method === 'GET' && !req.url.startsWith('/api/')) {
+        const hostHeader = req.headers.host || 'localhost';
+        let requestUrl;
+        try {
+            requestUrl = new URL(req.url, `http://${hostHeader}`);
+        } catch (err) {
+            res.writeHead(400);
+            res.end('Bad request');
+            return;
+        }
         // index.htmlの配信
-        if (req.url === '/' || req.url === '/index.html') {
+        if (requestUrl.pathname === '/' || requestUrl.pathname === '/index.html') {
             const indexPath = path.join(__dirname, 'index.html');
             fs.readFile(indexPath, (err, data) => {
                 if (err) {
@@ -1731,7 +1815,7 @@ const server = http.createServer((req, res) => {
             return;
         }
         const baseDir = process.env.SCAN_PATH;
-        const filePath = decodeURIComponent(req.url.substring(1)); // 先頭の/を削除
+        const filePath = decodeURIComponent(requestUrl.pathname.replace(/^\/+/, ''));
         const fullPath = path.join(baseDir, filePath);
         
         // ファイルの存在確認
@@ -1781,9 +1865,51 @@ const server = http.createServer((req, res) => {
     }
     
     res.setHeader('Content-Type', 'application/json');
-    const requestUrl = new URL(req.url, 'http://localhost');
+    const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     
-    if (requestUrl.pathname === '/api/scan' && req.method === 'GET') {
+    if (requestUrl.pathname === '/api/prompt/generate' && req.method === 'POST') {
+        let body = '';
+        req.on('data', (chunk) => {
+            body += chunk.toString();
+        });
+        req.on('end', async () => {
+            try {
+                const payload = body ? JSON.parse(body) : {};
+                const prompt = typeof payload.prompt === 'string' ? payload.prompt.trim() : '';
+                const mode = typeof payload.mode === 'string' ? payload.mode.trim().toLowerCase() : 'enhance';
+                const theme = typeof payload.theme === 'string' ? payload.theme.trim() : '';
+                const variantCount = Number.isFinite(payload?.variantCount) ? Number(payload.variantCount) : undefined;
+                if (!prompt) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'プロンプトを入力してください', code: 'EMPTY_PROMPT' }));
+                    return;
+                }
+                const context = (payload && typeof payload.context === 'object' && payload.context !== null)
+                    ? payload.context
+                    : null;
+                const result = await generatePromptSuggestions({
+                    prompt,
+                    mode,
+                    theme,
+                    variantCount,
+                    context
+                });
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, suggestions: result.suggestions, meta: result.meta }));
+            } catch (err) {
+                const code = err && err.code ? err.code : 'PROMPT_GENERATION_FAILED';
+                let status = 500;
+                if (code === 'GEMINI_API_KEY_MISSING') {
+                    status = 503;
+                } else if (code === 'EMPTY_PROMPT') {
+                    status = 400;
+                }
+                const message = err && err.message ? err.message : 'プロンプト生成に失敗しました';
+                res.writeHead(status, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: message, code }));
+            }
+        });
+    } else if (requestUrl.pathname === '/api/scan' && req.method === 'GET') {
         // .envで指定された絶対パスをスキャン
         if (!process.env.SCAN_PATH) {
             res.writeHead(500);
@@ -2053,6 +2179,241 @@ const server = http.createServer((req, res) => {
                 console.error('Error parsing request:', err);
                 res.writeHead(400);
                 res.end(JSON.stringify({ error: 'Invalid request' }));
+            }
+        });
+    } else if (requestUrl.pathname === '/api/showcase/history' && req.method === 'GET') {
+        try {
+            const history = loadShowcaseHistory();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                success: true,
+                version: history.version,
+                entries: history.entries,
+                filters: history.filters
+            }));
+        } catch (err) {
+            console.error('[Showcase] history read error', err);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+    } else if (requestUrl.pathname === '/api/showcase/history' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk.toString();
+        });
+        req.on('end', () => {
+            try {
+                const payload = body ? JSON.parse(body) : {};
+                const saved = saveShowcaseHistory(payload);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: true,
+                    version: saved.version,
+                    entries: saved.entries,
+                    filters: saved.filters
+                }));
+            } catch (err) {
+                console.error('[Showcase] history write error', err);
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        });
+    } else if (requestUrl.pathname === '/api/showcase/templates' && req.method === 'GET') {
+        try {
+            const prefs = loadTemplatePreferencesFile();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                success: true,
+                version: prefs.version,
+                hidden: prefs.hidden,
+                custom: prefs.custom
+            }));
+        } catch (err) {
+            console.error('[Showcase] template prefs read error', err);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+    } else if (requestUrl.pathname === '/api/showcase/templates' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk.toString();
+        });
+        req.on('end', () => {
+            try {
+                const payload = body ? JSON.parse(body) : {};
+                const saved = saveTemplatePreferencesFile(payload);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: true,
+                    version: saved.version,
+                    hidden: saved.hidden,
+                    custom: saved.custom
+                }));
+            } catch (err) {
+                console.error('[Showcase] template prefs write error', err);
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        });
+    } else if (requestUrl.pathname === '/api/mcp/categories' && req.method === 'GET') {
+        try {
+            const categories = listCategories();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, categories }));
+        } catch (err) {
+            console.error('[MCP] categories error', err);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+    } else if (requestUrl.pathname === '/api/mcp/tools' && req.method === 'GET') {
+        const category = requestUrl.searchParams.get('category');
+        const refresh = requestUrl.searchParams.get('refresh');
+        (async () => {
+            try {
+                const data = await listServers({
+                    category: category || null,
+                    forceRefresh: refresh === '1' || refresh === 'true'
+                });
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, data }));
+            } catch (err) {
+                console.error('[MCP] tools error', err);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        })();
+    } else if (requestUrl.pathname === '/api/mcp/refresh' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk.toString();
+        });
+        req.on('end', () => {
+            try {
+                const payload = body ? JSON.parse(body) : {};
+                const serverId = typeof payload.serverId === 'string' ? payload.serverId : null;
+                if (serverId) {
+                    refreshServer(serverId);
+                } else {
+                    refreshAll();
+                }
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true }));
+            } catch (err) {
+                console.error('[MCP] refresh error', err);
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        });
+    } else if ((requestUrl.pathname === '/api/mcp/run' || requestUrl.pathname === '/api/mcp/jobs')
+        && req.method === 'POST') {
+        let body = '';
+        req.on('data', (chunk) => {
+            body += chunk.toString();
+        });
+        req.on('end', () => {
+            try {
+                const payload = body ? JSON.parse(body) : {};
+                const prompt = typeof payload.prompt === 'string' ? payload.prompt.trim() : '';
+                const filePrefix = typeof payload.filePrefix === 'string' ? payload.filePrefix.trim() : '';
+                const engines = Array.isArray(payload.engines) ? payload.engines : [];
+                if (!engines.length) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'No engines specified' }));
+                    return;
+                }
+
+                const jobEngines = [];
+                engines.forEach((engine) => {
+                    const serverId = typeof engine?.id === 'string' ? engine.id : null;
+                    if (!serverId) {
+                        return;
+                    }
+                    jobEngines.push({
+                        id: serverId,
+                        label: typeof engine.label === 'string' ? engine.label : '',
+                        category: typeof engine.category === 'string' ? engine.category : '',
+                        input: engine && typeof engine.input === 'object' ? engine.input : {},
+                        media: Array.isArray(engine.media) ? engine.media : []
+                    });
+                });
+
+                if (!jobEngines.length) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'No valid engines specified' }));
+                    return;
+                }
+
+                const job = jobQueue.createJob({ prompt, filePrefix, engines: jobEngines });
+                res.writeHead(202, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, jobId: job.id, job }));
+            } catch (err) {
+                console.error('[MCP] create job error', err);
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        });
+    } else if (req.method === 'GET' && /^\/api\/mcp\/jobs\//.test(requestUrl.pathname)) {
+        const match = requestUrl.pathname.match(/^\/api\/mcp\/jobs\/([^/]+)$/);
+        if (!match) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Invalid job path' }));
+            return;
+        }
+        const jobId = match[1];
+        const job = jobQueue.getJob(jobId);
+        if (!job) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Job not found' }));
+            return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, job }));
+    } else if (req.method === 'POST' && /^\/api\/mcp\/jobs\/.+\/cancel$/.test(requestUrl.pathname)) {
+        let body = '';
+        req.on('data', (chunk) => {
+            body += chunk.toString();
+        });
+        req.on('end', () => {
+            try {
+                const match = requestUrl.pathname.match(/^\/api\/mcp\/jobs\/([^/]+)\/cancel$/);
+                if (!match) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Invalid cancel path' }));
+                    return;
+                }
+                const jobId = match[1];
+                const payload = body ? JSON.parse(body) : {};
+                const engineId = typeof payload.engineId === 'string' ? payload.engineId : null;
+                const job = jobQueue.cancelJob(jobId, engineId);
+                if (!job) {
+                    res.writeHead(404, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Job not found' }));
+                    return;
+                }
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, job }));
+            } catch (err) {
+                console.error('[MCP] cancel job error', err);
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        });
+    } else if (requestUrl.pathname === '/api/image-remix/edit' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk.toString();
+        });
+        req.on('end', async () => {
+            try {
+                const payload = body ? JSON.parse(body) : {};
+                console.log('[ImageRemix] request', payload.engine, payload.sourcePath);
+                const result = await imageRemix.runImageEdit(payload);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(result));
+            } catch (err) {
+                console.error('[ImageRemix] error', err);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
             }
         });
     } else if (requestUrl.pathname === '/api/pty/open-iterm' && req.method === 'POST') {
@@ -2563,10 +2924,10 @@ const server = http.createServer((req, res) => {
                     return;
                 }
                 
-                const mcpConfigPath = process.env.CLAUDE_MCP_CONFIG_PATH;
+                const mcpConfigPath = process.env.KAMUI_CODE_CONFIG_PATH;
                 if (!mcpConfigPath || !fs.existsSync(mcpConfigPath)) {
                     res.writeHead(500);
-                    res.end(JSON.stringify({ error: 'MCP configuration not found', path: mcpConfigPath }));
+                    res.end(JSON.stringify({ error: 'Kamui Code configuration not found', path: mcpConfigPath }));
                     return;
                 }
                 
@@ -2807,8 +3168,8 @@ const server = http.createServer((req, res) => {
             }
         });
     } else if (requestUrl.pathname === '/api/claude/health' && req.method === 'GET') {
-        // Claude headlessモード用ヘルスチェック
-        const mcpConfigPath = process.env.CLAUDE_MCP_CONFIG_PATH;
+        // Kamui Code headlessモード用ヘルスチェック
+        const mcpConfigPath = process.env.KAMUI_CODE_CONFIG_PATH;
         const mcpExists = mcpConfigPath && fs.existsSync(mcpConfigPath);
         
         res.writeHead(200);
@@ -2834,8 +3195,8 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(data));
     } else if (requestUrl.pathname === '/api/claude/mcp/servers' && req.method === 'GET') {
-        // MCP設定からサーバー一覧を返す
-        const mcpPath = process.env.CLAUDE_MCP_CONFIG_PATH;
+        // Kamui Code設定からサーバー一覧を返す
+        const mcpPath = process.env.KAMUI_CODE_CONFIG_PATH;
         try {
             const servers = [];
             if (mcpPath && fs.existsSync(mcpPath)) {
@@ -3425,6 +3786,12 @@ if (!resolvedPort) {
     console.warn('[Server] PORT env var missing, defaulting to 7777');
 }
 const PORT = resolvedPort;
+
+// Kamui Code Showcase データの初期化（showcase/dataService.js に移動）
+showcase.initialize();
+
+// Image Remix の初期化
+imageRemix.initialize();
 
 process.on('beforeExit', () => {
     try {

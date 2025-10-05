@@ -4,8 +4,10 @@
   "description": "## Setup",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "test": "node test/update-system.test.js",
+    "test:unit": "node test/update-system.test.js",
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "keywords": [],
   "author": "",

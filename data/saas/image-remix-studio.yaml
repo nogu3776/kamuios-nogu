@@ -1,0 +1,90 @@
+# Image Remix Studio
+- id: saas-image-remix-studio
+  category: 3
+  category_name: メディアエディタ
+  title: Image Remix Studio
+  summary: Nano Banana / Seedream を使って既存画像をリミックスするエディタ
+  custom_html: |
+    <link rel="stylesheet" href="/css/image-remix-studio.css">
+    <div class="image-remix-wrapper" id="image-remix-root">
+      <div class="irs-column irs-column--media">
+        <div class="irs-panel">
+          <div class="irs-panel__header">
+            <h3 class="irs-panel__title">メディア</h3>
+            <button class="irs-refresh" id="irs-refresh-sources" title="一覧を再取得">⟳</button>
+          </div>
+          <div class="irs-panel__body">
+            <div class="irs-source-controls">
+              <div class="irs-search">
+                <input type="text" id="irs-search-input" placeholder="画像名で検索" aria-label="画像検索">
+              </div>
+              <div class="irs-sort">
+                <label class="irs-label" for="irs-sort-select">並び替え</label>
+                <select id="irs-sort-select">
+                  <option value="name">名前順</option>
+                  <option value="newest">新着順</option>
+                  <option value="oldest">古い順</option>
+                </select>
+              </div>
+            </div>
+            <div class="irs-source-list" id="irs-source-list"></div>
+          </div>
+        </div>
+      </div>
+      <div class="irs-column irs-column--preview">
+        <div class="irs-panel irs-panel--preview">
+          <div class="irs-panel__header">
+            <h3 class="irs-panel__title">プレビュー</h3>
+          </div>
+          <div class="irs-panel__body irs-panel__body--preview">
+            <div class="irs-toolbar">
+              <div class="irs-toolbar-row irs-toolbar-row--main">
+                <div class="irs-tool-block irs-tool-block--engine">
+                  <label class="irs-label" for="irs-engine-select">エンジン</label>
+                  <select id="irs-engine-select">
+                    <option value="nano-banana">Nano Banana</option>
+                    <option value="seedream">Seedream</option>
+                  </select>
+                </div>
+                <div class="irs-tool-block irs-tool-block--prompt">
+                  <label class="irs-label" for="irs-prompt">編集プロンプト</label>
+                  <textarea id="irs-prompt" rows="1"></textarea>
+                </div>
+                <div class="irs-tool-block irs-tool-block--actions">
+                  <label class="irs-label">&nbsp;</label>
+                  <button class="irs-primary" id="irs-run-button" disabled>編集を開始</button>
+                </div>
+              </div>
+            </div>
+            <div class="irs-preview">
+              <div class="irs-preview__slot">
+                <span class="irs-badge">Before</span>
+                <div class="irs-preview__media" id="irs-preview-before"></div>
+              </div>
+              <div class="irs-preview__slot">
+                <span class="irs-badge">After</span>
+                <div class="irs-preview__media" id="irs-preview-after"></div>
+              </div>
+            </div>
+            <div class="irs-log-block">
+              <div class="irs-run-log" id="irs-status"></div>
+            </div>
+            <details class="irs-detail-log" id="irs-log-panel">
+              <summary>詳細ログ</summary>
+              <pre id="irs-log-content">ログはまだありません。</pre>
+            </details>
+          </div>
+        </div>
+      </div>
+      <div class="irs-column irs-column--history">
+        <div class="irs-panel irs-panel--history">
+          <div class="irs-panel__header">
+            <h3 class="irs-panel__title">生成履歴</h3>
+          </div>
+          <div class="irs-panel__body">
+            <div class="irs-history" id="irs-history"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/js/image-remix-studio.js"></script>

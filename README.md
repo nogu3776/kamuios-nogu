@@ -6,7 +6,7 @@
 
 ### クイックスタート
 
-最速で起動する3ステップ：
+最速で起動する3ステップ（**macOS/Linux向け**）：
 
 ```bash
 # 1. クローンして移動
@@ -14,17 +14,20 @@ git clone https://github.com/dai-motoki/kamuios.git && cd kamuios
 
 # 2. 環境設定
 cp env.sample .env
-# .envを編集（最低限ANTHROPIC_API_KEYとCLAUDE_MCP_CONFIG_PATHを設定）
 
 # 3. 起動（すべてのサービス + ブラウザ自動起動）
 ./start_all.sh
 ```
+
+**Windows向け**は「6. Windows での起動」セクションを参照してください。
 
 ### 基本セットアップ
 
 KamuiOSは以下の機能を提供します：
 - 🎨 **Dynamic Media Gallery** - メディアファイルの動的閲覧・管理
 - 🤖 **AI エージェント機能** - Claude APIを使用した高度なAIアシスタント
+- 🎬 **Kamui Code Showcase** - テンプレートベースのクリエイティブ生成（画像・動画・3D・音楽）
+- ✨ **Image Remix Studio** - AI画像編集機能（Nano Banana / Seedream V4対応）
 - 🌐 **3D Directory Graph** - ディレクトリ構造の3D可視化（AR/VR対応）
 - 📱 **空間コンピューティング** - AR/VR環境での操作体験
 
@@ -56,10 +59,17 @@ ANTHROPIC_API_KEY=sk-ant-api03-xxxxxx  # Claude API キー
 CLAUDE_MCP_CONFIG_PATH=/path/to/mcp-config.json  # MCP設定ファイルのパス
 SCAN_PATH=/Users/yourname/kamuios/  # メディアファイルのスキャンパス
 
+# Kamui Code機能用（Showcase、Image Remix Studio）
+KAMUI_CODE_CONFIG_PATH=/path/to/mcp-kamui-code.json  # Kamui Code設定ファイル（必須）
+
 # オプション設定（デフォルト値あり）
 PORT=7777  # Node.jsサーバーのポート
 CLAUDE_MAX_TURNS=8  # Claude AIの最大ターン数
 CLAUDE_DEBUG=1  # デバッグモード（0 または 1）
+
+# Kamui Code機能用（オプション）
+GEMINI_API_KEY=  # プロンプトジェネレーター用（Showcase機能）
+FAL_KEY=  # ファイルアップロード用（Showcase、Image Remix Studio）
 ```
 
 #### 3. 一括起動（推奨）
@@ -78,8 +88,9 @@ CLAUDE_DEBUG=1  # デバッグモード（0 または 1）
 #### 4. アクセスURL
 
 - **メインインターフェース**: http://localhost:1313/
-- **メインインターフェース**: http://localhost:1313/
 - **Dynamic Media Gallery**: http://localhost:1313/#dynamic-media-gallery
+- **Kamui Code Showcase**: http://localhost:1313/#kamui-code-showcase
+- **Image Remix Studio**: http://localhost:1313/#image-remix-studio
 - **3D Directory Graph**: http://localhost:1313/dir-graph-ar.html
 - **Node.js API**: http://localhost:7777/
 
@@ -88,6 +99,26 @@ CLAUDE_DEBUG=1  # デバッグモード（0 または 1）
 ```bash
 ./start_all.sh stop
 # または実行中に Ctrl+C
+```
+
+#### 6. Windows での起動
+
+Windowsユーザーは `start_all.bat` を使用してください：
+
+```cmd
+REM 1. クローンして移動
+git clone https://github.com/dai-motoki/kamuios.git
+cd kamuios
+
+REM 2. 環境設定
+copy env.sample .env
+REM .envをメモ帳などで編集
+
+REM 3. 起動
+start_all.bat
+
+REM 停止
+start_all.bat stop
 ```
 
 
@@ -159,6 +190,33 @@ Claude APIを活用した高度なAIアシスタント機能です。
 - 🚀 Headlessモードによる高速実行
 
 円形ダイヤルインターフェースから各種AIツールにアクセスできます。`--verbose`オプションにより、AIとの詳細な対話ログを取得できます。
+
+### Kamui Code Showcase
+
+Kamui Codeを使ったクリエイティブ生成システムです。
+
+- 🎨 テンプレートベースの生成ワークフロー
+- 🖼️ 画像・動画・3D・音楽生成に対応
+
+アクセス: http://localhost:1313/#kamui-code-showcase
+
+**必要な設定:**
+- `KAMUI_CODE_CONFIG_PATH` - Kamui Code設定ファイル（必須）
+- `GEMINI_API_KEY` - プロンプトジェネレーター用（オプション）
+- `FAL_KEY` - ファイルアップロード用（オプション）
+
+### Image Remix Studio
+
+AI画像編集機能です（Nano Banana / Seedream V4対応）。
+
+- ✨ プロンプトベースの画像編集
+- 🔧 複数エンジン対応（Nano Banana、Seedream）
+
+アクセス: http://localhost:1313/#image-remix-studio
+
+**必要な設定:**
+- `KAMUI_CODE_CONFIG_PATH` - Kamui Code設定ファイル（必須）
+- `FAL_KEY` - ファイルアップロード用（必須）
 
 ### Directory Graph 3D AR/VR
 
@@ -400,7 +458,7 @@ hugo server -D -p 1313
 
 3) ブラウザでアクセス
 
-`http://localhost:1313/` を開き、右下のロボットボタンを押すか、タスク入力欄で `/` を入力すると円形ダイヤルが開きます。
+`http://localhost:1313/` を開き、右下のイルカボタンを押すか、タスク入力欄で `/` を入力すると円形ダイヤルが開きます。
 
 ### 既定URLの上書き（任意）
 

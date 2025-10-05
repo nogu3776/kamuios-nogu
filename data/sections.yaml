@@ -214,6 +214,38 @@
             • 静止画/動画対応
           </div>
         </a>
+
+        <a href="#saas-image-remix-studio" class="saas-app-card" onclick="showSaasApp('image-remix-studio'); return false;">
+          <img src="/images/agent_card_square.jpg" alt="Image Remix Studio" style="width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;">
+          <div class="saas-app-title">
+            Image Remix Studio
+            <span class="saas-app-arrow">→</span>
+          </div>
+          <div class="saas-app-description">
+            Dynamic Media Gallery と Kamui Code を組み合わせた画像リミックススタジオ
+          </div>
+          <div class="saas-app-features">
+            • メディアギャラリー連携<br>
+            • Nano Banana / Seedream 切替<br>
+            • プロンプト履歴とログ表示
+          </div>
+        </a>
+
+        <a href="#saas-kamui-code-showcase" class="saas-app-card" onclick="showSaasApp('kamui-code-showcase'); return false;">
+          <img src="/images/agent_card_square.jpg" alt="Kamui Code Showcase" style="width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;">
+          <div class="saas-app-title">
+            Kamui Code Showcase
+            <span class="saas-app-arrow">→</span>
+          </div>
+          <div class="saas-app-description">
+            KamuiCode MCP を横断し、同一プロンプトで生成結果を比較できるスタジオ
+          </div>
+          <div class="saas-app-features">
+            • MCPメタ情報の自動検出<br>
+            • 共通プロンプトで同時実行<br>
+            • 生成結果の横並び比較
+          </div>
+        </a>
       </div>
     </div>
     
@@ -292,6 +324,42 @@
           </div>
           <div class="saas-app-description">主要チャネル/運用/KPIの整理ページ</div>
           <div class="saas-app-features">• X/IG/YT/TikTok• KPI• 運用フロー</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- ゲームセクション -->
+    <div class="dashboard-sections">
+      <h2 class="dashboard-section-title">ゲーム</h2>
+      <div class="dashboard-links">
+        <a href="#game-2048" class="saas-app-card" onclick="showSaasApp('2048'); return false;">
+          <video src="/videos/game_card.mp4" alt="2048" style="width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;" autoplay loop muted playsinline></video>
+          <div class="saas-app-title">
+            2048
+            <span class="saas-app-arrow">→</span>
+          </div>
+          <div class="saas-app-description">クラシック2048パズルゲーム</div>
+          <div class="saas-app-features">• 数字パズル<br>• スコア記録<br>• キーボード操作</div>
+        </a>
+        
+        <a href="#game-snake" class="saas-app-card" onclick="showSaasApp('snake'); return false;">
+          <video src="/videos/snake_card.mp4" alt="スネーク" style="width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;" autoplay loop muted playsinline></video>
+          <div class="saas-app-title">
+            スネーク
+            <span class="saas-app-arrow">→</span>
+          </div>
+          <div class="saas-app-description">シンプルなスネークゲーム</div>
+          <div class="saas-app-features">• 方向キー操作<br>• スコア記録<br>• レトロスタイル</div>
+        </a>
+        
+        <a href="#game-breakout" class="saas-app-card" onclick="showSaasApp('breakout'); return false;">
+          <video src="/videos/breakout_card.mp4" alt="ブレイクアウト" style="width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;" autoplay loop muted playsinline></video>
+          <div class="saas-app-title">
+            ブレイクアウト
+            <span class="saas-app-arrow">→</span>
+          </div>
+          <div class="saas-app-description">ボールでブロックを破壊するゲーム</div>
+          <div class="saas-app-features">• パドル操作<br>• ブロック破壊<br>• スコアシステム</div>
         </a>
       </div>
     </div>
