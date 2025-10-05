@@ -1,4 +1,20 @@
-# KamuiOS
+# KamuiOS - Noguカスタマイズ版
+
+> ⚠️ このリポジトリは [dai-motoki/kamuios](https://github.com/dai-motoki/kamuios) からForkし、個人的に機能を追加・カスタマイズしたものです。
+>
+> **本家リポジトリ**: https://github.com/dai-motoki/kamuios
+> **元の作者**: [@dai-motoki](https://github.com/dai-motoki)
+
+## 🆕 このForkで追加した主な機能
+
+- 🎬 **Kamui Code Showcase** - 複数のKamui Code MCPを横断比較しながら即時生成
+- ✨ **Image Remix Studio** - AI画像編集（Nano Banana / Seedream V4対応）
+
+詳細は下記の各セクションをご覧ください。
+
+---
+
+# （以下、本家KamuiOSのREADME）
 
 空間コンピューティング時代のWebOS。AR/VR環境で動作する3D空間インターフェースを提供し、ファイルシステムやアプリケーションを物理空間に配置して操作できます。AIツールとの統合により、次世代の作業環境を実現します。
 
