@@ -26,7 +26,7 @@
 
 ```bash
 # 1. クローンして移動
-git clone https://github.com/nogu3776/kamuios-nogu.git && cd kamuios-nogu
+git clone https://github.com/nogu3776/kamuios-nogu.git kamuios && cd kamuios
 
 # 2. 環境設定
 cp env.sample .env
@@ -58,8 +58,8 @@ KamuiOSは以下の機能を提供します：
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/nogu3776/kamuios-nogu.git
-cd kamuios-nogu
+git clone https://github.com/nogu3776/kamuios-nogu.git kamuios
+cd kamuios
 
 # 環境設定ファイルをコピー
 cp env.sample .env
@@ -123,8 +123,8 @@ Windowsユーザーは `start_all.bat` を使用してください：
 
 ```cmd
 REM 1. クローンして移動
-git clone https://github.com/nogu3776/kamuios-nogu.git
-cd kamuios-nogu
+git clone https://github.com/nogu3776/kamuios-nogu.git kamuios
+cd kamuios
 
 REM 2. 環境設定
 copy env.sample .env
