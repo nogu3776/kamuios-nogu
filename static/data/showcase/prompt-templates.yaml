@@ -1,0 +1,1004 @@
+templates:
+  # i2i text prompts (English)
+  - id: i2i-real-portrait-enhance-en
+    name: Real Portrait Enhance (EN)
+    category: image
+    type: i2i
+    filePrefix: portrait_enhance_en
+    prompt: |
+      Polish the supplied portrait while keeping identity intact: refine skin tone transitions, brighten the eyes,
+      tame stray flyaway hair, and nudge exposure for a clean studio finish. Do not alter pose, wardrobe, or background props.
+    memo: |
+      アイデンティティを保ったまま供給されたポートレートを磨く：肌色の移行を洗練し、目を明るくし、乱れた髪を整え、クリーンなスタジオ仕上げのため露出を調整する。ポーズ、衣装、背景の小道具は変更しない。
+
+  - id: i2i-anime-consistency-en
+    name: Anime Character Consistency (EN)
+    category: image
+    type: i2i
+    filePrefix: anime_consistency_en
+    prompt: |
+      Harmonize the input anime frame so the hero matches official key art—align facial proportions, line weight,
+      and palette saturation, then unify shadows across outfit layers. Keep action effects and typography untouched.
+    memo: |
+      ヒーローが公式キーアートと一致するように入力アニメフレームを調和させる：顔の比率、線の太さ、パレットの彩度を揃え、衣装レイヤー全体の影を統一する。アクション効果とタイポグラフィはそのまま。
+
+  - id: i2i-scenery-mood-en
+    name: Scenery Mood Boost (EN)
+    category: image
+    type: i2i
+    filePrefix: scenery_mood_en
+    prompt: |
+      Enhance landscape atmosphere: amplify dawn light rays, deepen sky gradients, and add subtle ground mist while preserving
+      the horizon and silhouettes. Avoid introducing new objects or lens flares.
+    memo: |
+      風景の雰囲気を向上：夜明けの光線を増幅し、空のグラデーションを深め、地平線とシルエットを保持しながら微細な地霧を追加。新しいオブジェクトやレンズフレアの導入は避ける。
+
+  - id: i2i-architecture-clarity-en
+    name: Architectural Clarity Pass (EN)
+    category: image
+    type: i2i
+    filePrefix: arch_clarity_en
+    prompt: |
+      Clean the architectural render—tighten perspective lines, increase facade contrast, and remove rendering noise.
+      Leave vegetation placement and people markers intact. Deliver as print-ready PNG.
+    memo: |
+      建築レンダリングをクリーンアップ：透視線を引き締め、ファサードのコントラストを増加し、レンダリングノイズを除去。植生配置と人物マーカーはそのまま。印刷対応PNGとして納品。
+
+  - id: i2i-wildlife-focus-en
+    name: Wildlife Focus Enrichment (EN)
+    category: image
+    type: i2i
+    filePrefix: wildlife_focus_en
+    prompt: |
+      Emphasize the featured animal: sharpen fur texture, warm the catchlights, soften busy background foliage, and
+      dampen color spill from foreground elements. Keep natural coloration and avoid artificial props.
+    memo: |
+      特集動物を強調：毛皮の質感をシャープにし、キャッチライトを温かくし、忙しい背景の葉を柔らかくし、前景要素からの色漏れを抑制。自然な色彩を保ち、人工的な小道具は避ける。
+
+  # i2i text prompts (Japanese)
+  - id: i2i-real-portrait-enhance-ja
+    name: ポートレート仕上げ強化 (JA)
+    category: image
+    type: i2i
+    filePrefix: portrait_enhance_ja
+    prompt: |
+      提供された人物写真の肌表現を自然に整え、瞳と髪の艶を引き立てます。ライティングを柔らかく補正しつつ、
+      ポーズ・衣装・背景の小物はそのままに、高解像の仕上がりを目指してください。
+    memo: |
+      日本語プロンプトによるポートレート強化テンプレート
+
+  - id: i2i-anime-consistency-ja
+    name: アニメキャラ統一補正 (JA)
+    category: image
+    type: i2i
+    filePrefix: anime_consistency_ja
+    prompt: |
+      入力されたアニメカットを正式設定画に合わせるイメージで、輪郭線・色彩・陰影を再調整します。
+      アクションのエフェクトや字幕は消さずに、表情と髪型の一貫性を保ってください。
+    memo: |
+      日本語プロンプトによるアニメキャラクター一貫性補正テンプレート
+
+  - id: i2i-scenery-mood-ja
+    name: 風景ムードアップ (JA)
+    category: image
+    type: i2i
+    filePrefix: scenery_mood_ja
+    prompt: |
+      風景写真の空気感を高め、朝焼けや夕景の光を強調してください。地平線やシルエットの形状は変えず、
+      霧やハイライトを繊細に追加して奥行きを演出します。
+    memo: |
+      日本語プロンプトによる風景写真の雰囲気向上テンプレート
+
+  - id: i2i-architecture-clarity-ja
+    name: 建築クリアパス (JA)
+    category: image
+    type: i2i
+    filePrefix: arch_clarity_ja
+    prompt: |
+      建築ビジュアライゼーションのノイズ除去とラインの補正を行い、素材感を明瞭にします。
+      人物スケールや植栽の配置は変更せず、最終出力をプレゼン用PNGで整えてください。
+    memo: |
+      日本語プロンプトによる建築レンダリングのクリーンアップテンプレート
+
+  - id: i2i-wildlife-focus-ja
+    name: 野生動物フォーカス (JA)
+    category: image
+    type: i2i
+    filePrefix: wildlife_focus_ja
+    prompt: |
+      被写体となる動物の毛並みや瞳の輝きを際立たせ、背景の雑味を軽減します。
+      元の自然な色味を尊重し、新しい小物や装飾は追加しないでください。
+    memo: |
+      日本語プロンプトによる野生動物写真の強調テンプレート
+
+  # i2i penguin pose/style variations
+  - id: i2i-penguin-dive-wide
+    name: ペンギン：レジェンド・ダイブ
+    category: Image
+    type: i2i
+    filePrefix: penguin_legend_dive
+    prompt: |
+      Depict the supplied 3D penguin diving into crashing waves while preserving its body shape and color palette.
+      Switch the pose to a wide-winged plunge captured with an extreme wide-angle perspective and backlit highlights for energy.
+      Render detailed spray and droplets, and avoid adding new outfits or making drastic changes to the expression.
+    memo: |
+      入力ペンギンの体型と配色を保ったまま、超広角＆逆光でダイブする瞬間を描写。水しぶきの粒子を描き込み、衣装や表情の大幅変更は避ける。
+
+  - id: i2i-penguin-pencil-sketch
+    name: ペンギン：スケッチ調ポートレート
+    category: Image
+    type: i2i
+    filePrefix: penguin_pencil_sketch
+    prompt: |
+      Convert the front-facing pose into a colored-pencil sketch while keeping the penguin's facial features and palette intact.
+      Emphasize hand-drawn hatching, paper grain, and gentle studio lighting that keeps shadows minimal.
+      Avoid introducing new props; maintain the character's cuteness while foregrounding analog texture.
+    memo: |
+      正面立ちポーズを色鉛筆スケッチ風に変換。輪郭と配色は保持し、手描きのハッチングや紙の質感、柔らかな光でアナログ感を出す。
+
+  - id: i2i-penguin-hero-lowangle
+    name: ペンギン：ローアングル・ヒーローショット
+    category: Image
+    type: i2i
+    filePrefix: penguin_hero_lowangle
+    prompt: |
+      Reframe the penguin as a proud hero from a low-angle viewpoint without altering the character design.
+      Pose it chest out against a backlit sunset with cinematic sunbeams, echoing a movie poster vibe.
+      Keep the background softly blurred and preserve the friendly facial orientation and expression.
+    memo: |
+      デザインを変えずにローアングルのヒーローポーズへ。夕焼け逆光と光条で映画ポスター風にしつつ、背景は柔らかいボケで表情も親しみやすく保つ。
+
+  - id: i2i-penguin-topdown-toy
+    name: ペンギン：トップダウン・アートトイ
+    category: Image
+    type: i2i
+    filePrefix: penguin_topdown_toy
+    prompt: |
+      Restyle the penguin as a soft vinyl art toy viewed directly from above on a tabletop.
+      Scatter colorful stationery props around it and light the scene with gentle studio lamps that show gloss and shadow.
+      Preserve the original color palette and rounded proportions, avoiding extra anthropomorphic details.
+    memo: |
+      ソフビ玩具風の質感にして真上から俯瞰撮影。カラフルな文房具を配置し、柔らかなライトで光沢と影を際立てる。配色や丸みは維持し追加の擬人化はしない。
+
+  - id: i2i-penguin-stopmotion-runway
+    name: ペンギン：ストップモーション風ランウェイ
+    category: Image
+    type: i2i
+    filePrefix: penguin_stopmotion_runway
+    prompt: |
+      Transform the penguin into a stop-motion inspired runway sequence while keeping the sculpt consistent.
+      Arrange three to four walking-cycle poses side by side on the catwalk with fabric backdrops and spotlight rigs.
+      Introduce subtle exposure shifts and shadows between frames without altering the character's color scheme.
+    memo: |
+      造形を変えずストップモーション風の連続歩行に。ランウェイに3〜4ポーズを並べ、布バックドロップとスポットライトで演出。露光の揺らぎを加えつつ配色は維持。
+
+  # t2i structured YAML prompts
+  - id: t2i-real-person-studio
+    name: Structured Real Studio Portrait
+    category: image
+    type: t2i
+    filePrefix: studio_portrait
+    prompt: |
+      system_prompt: |
+        You build studio-quality portraits. Combine subject traits with lighting presets from YAML components.
+      scene:
+        subject:
+          type: person
+          attributes:
+            gender: female
+            age: "late twenties"
+            attire: "minimalist black blazer"
+            expression: "confident, gentle smile"
+        composition:
+          camera: "85mm lens, chest-up framing"
+          background: "soft gradient backdrop"
+      styling:
+        lighting: "three-point setup with neutral fill"
+        color_palette: "warm skin tones with subtle cool rim"
+        details:
+          makeup: "natural, editorial"
+          hair: "sleek straight bob"
+        negative: ["text", "logos", "over-sharpened skin"]
+      parameters:
+        resolution: "1536x2048"
+        sampler: "ddim"
+        cfg_scale: 7
+    memo: |
+      YAML構造化プロンプトによるスタジオクオリティのポートレート生成。被写体の特徴とライティングプリセットを組み合わせ。
+
+  - id: t2i-anime-heroine
+    name: Structured Anime Heroine
+    category: image
+    type: t2i
+    filePrefix: anime_heroine
+    prompt: |
+      system_prompt: |
+        You produce consistent anime key visuals. Follow the character sheet and scene cues defined below.
+      character_sheet:
+        name: "Skybound Navigator"
+        traits:
+          hair: "silver twin braids with blue ribbons"
+          costume: "navy jacket, white pleated skirt, brass buttons"
+          accessory: "floating compass drone"
+      scene:
+        environment: "sunset sky dock above floating city"
+        mood: "optimistic adventure"
+      rendering:
+        style: "vibrant TV anime"
+        linework: "clean, medium weight"
+        lighting: "warm key light, cool bounce shadows"
+        negative: ["gritty realism", "heavy grain", "text"]
+      parameters:
+        resolution: "1920x1080"
+        aspect_ratio: "16:9"
+        steps: 32
+    memo: |
+      YAML構造化プロンプトによる一貫したアニメキービジュアルの生成。キャラクターシートとシーンキューに従って制作。
+
+  - id: t2i-scenery-lake-morning
+    name: Structured Morning Lakeside
+    category: image
+    type: t2i
+    filePrefix: morning_lakeside
+    prompt: |
+      system_prompt: |
+        Compose scenic concept art with layered atmospheric depth.
+      scene:
+        subject: "misty alpine lake at first light"
+        foreground: ["wild grasses", "dew droplets"]
+        midground: ["wooden dock", "lone figure with blanket"]
+        background: ["snow peaks", "soft pink clouds"]
+      composition:
+        camera: "28mm lens, low vantage"
+        leading_lines: "dock planks and shoreline"
+      rendering:
+        style: "painterly concept art"
+        color_palette: "cool blues with rose highlights"
+        negative: ["text", "modern buildings", "hard shadows"]
+      parameters:
+        resolution: "2048x1152"
+        sampler: "euler"
+        cfg_scale: 6.5
+    memo: |
+      大気の深度を重視したレイヤー構造のシーンコンセプトアート。霧がかった高山湖の朝の風景。
+
+  - id: t2i-architecture-night-city
+    name: Structured Night City Skyline
+    category: image
+    type: t2i
+    filePrefix: night_city_skyline
+    prompt: |
+      system_prompt: |
+        Generate atmospheric architectural visuals emphasizing lighting rhythm.
+      scene:
+        subject: "waterfront cultural tower with stepped terraces"
+        environment: "night cityscape, reflections on calm water"
+      composition:
+        camera: "35mm lens, elevated perspective"
+        balance: "tower on left third, skyline stretching right"
+      rendering:
+        style: "archviz photoreal"
+        lighting: "warm interior glow, cool exterior accent"
+        materials:
+          facade: "perforated bronze panels"
+          glazing: "low-iron glass"
+        negative: ["billboards", "heavy traffic", "text"]
+      parameters:
+        resolution: "2048x1365"
+        steps: 28
+        cfg_scale: 7.2
+    memo: |
+      照明リズムを重視した雰囲気のある建築ビジュアルの生成。水辺の文化的タワーと夜の都市景観。
+
+  - id: t2i-animal-portrait
+    name: Structured Wildlife Portrait
+    category: image
+    type: t2i
+    filePrefix: wildlife_portrait
+    prompt: |
+      system_prompt: |
+        Craft detailed wildlife portraits with studio lighting language.
+      subject:
+        species: "red fox"
+        pose: "three-quarter head tilt"
+        fur_detail: "winter coat with frost highlights"
+      composition:
+        crop: "tight head-and-shoulders"
+        background: "deep forest green gradient"
+      lighting:
+        key: "soft octabox from camera left"
+        fill: "subtle negative fill on right"
+        rim: "cool kicker to outline ears"
+      rendering:
+        style: "hyper-real painterly"
+        color_palette: "warm russet, cool blue accents"
+        negative: ["cartoon eyes", "text", "collar"]
+      parameters:
+        resolution: "1536x1536"
+        sampler: "dpm++ 2m"
+        cfg_scale: 6.8
+    memo: |
+      スタジオライティング技法を用いた詳細な野生動物ポートレートの制作。超リアルな絵画風スタイル。
+
+  # t2v structured video prompts
+  - id: t2v-urban-rain-walk
+    name: Urban Rain Walk
+    category: video
+    type: t2v
+    filePrefix: rain_walk
+    prompt: |
+      scenario: Urban rain walk in neon-lit Tokyo alley
+      subject:
+        type: human
+        description: young professional woman with transparent umbrella
+        wardrobe: charcoal suit, ankle boots
+      environment:
+        location: Shinjuku back alley
+        conditions:
+          weather: light rain
+          lighting: neon signage reflections, steam vents, wet pavement sheen
+      camera:
+        rig: gimbal push-in
+        lens_equivalent: 50mm
+        movement: smooth forward track from waist height
+      timeline:
+        - range: 0.00-0.33
+          action: follow from behind, raindrops gather along umbrella rim
+        - range: 0.33-0.66
+          action: subject glances toward signage, puddles mirror magenta glow
+        - range: 0.66-1.00
+          action: camera eases to close-up on umbrella ribs as steam crosses frame
+      visuals:
+        color_palette: [deep blue, magenta, warm skin tones]
+        effects: [rain droplets, mild motion blur on background]
+      constraints:
+        avoid: [handheld shake, hard cuts, fantasy elements]
+    memo: |
+      夜の新宿裏路地で女性が透明傘を差し歩くワンカット。雨粒や蒸気、ネオン反射を丁寧に描写し、手ブレや唐突なカットは禁止。
+
+  - id: t2v-aurora-coast-drone
+    name: Aurora Coast Drone Pass
+    category: video
+    type: t2v
+    filePrefix: aurora_coast
+    prompt: |
+      scenario: Drone reveals aurora above arctic coastline
+      subject:
+        type: landscape
+        description: rugged cliffs and icy water with sparse pines
+      environment:
+        location: subarctic shoreline
+        conditions:
+          sky: vivid aurora curtains, sharp stars
+          lighting: cool moon rim with aurora glow on snowcaps
+      camera:
+        rig: drone
+        lens_equivalent: 24mm
+        movement: low glide over water transitioning into upward arc reveal
+      timeline:
+        - range: 0.00-0.30
+          action: skim above dark water, ice floes drifting past
+        - range: 0.30-0.70
+          action: ascend to expose cliff faces and green aurora drapery
+        - range: 0.70-1.00
+          action: hold wide panorama, subtle roll showing star field
+      visuals:
+        color_palette: [emerald, violet, moonlit cyan]
+        effects: [light mist above water, gentle lens bloom]
+      constraints:
+        avoid: [timelapse streaks, fantasy creatures, city lights]
+    memo: |
+      北極圏の海岸をドローンで滑空し、低空から上昇してオーロラと崖を見せる。水面の霧や星空を静かに描き、ファンタジー要素は排除。
+
+  - id: t2v-cyber-courier-run
+    name: Cyber Courier Sprint
+    category: video
+    type: t2v
+    filePrefix: cyber_courier
+    prompt: |
+      scenario: Futuristic courier sprinting across elevated skywalks
+      subject:
+        type: anime_character
+        description: delivery rider in aerodynamic suit with light bike helmet
+      environment:
+        location: neon megacity skybridge network
+        conditions:
+          lighting: holographic billboards, aerial traffic streaks, drizzle haze
+          atmosphere: volumetric beams, reflective panels
+      camera:
+        rig: lateral tracking sled
+        lens_equivalent: 35mm
+        movement: fast side track with parallax and tilt-up during jump
+      timeline:
+        - range: 0.00-0.40
+          action: side profile sprint, sparks from boots, signage rushing by
+        - range: 0.40-0.80
+          action: courier vaults a gap, camera tilts to follow the arc
+        - range: 0.80-1.00
+          action: hero lands and looks toward camera with skyline behind
+      visuals:
+        style: high-energy TV anime
+        effects: [motion streaks, HUD arrows, neon bloom]
+      constraints:
+        avoid: [camera shake, character deformation, sudden cuts]
+    memo: |
+      近未来の空中歩道を疾走するアニメ調ライダー。横移動トラッキングからジャンプ、着地のヒーローポーズまで滑らかに描く。
+
+  # i2v structured video prompts (penguin reference)
+  - id: i2v-penguin-snow-dance
+    name: Penguin Snow Dance
+    category: video
+    type: i2v
+    filePrefix: penguin_snow_dance
+    prompt: |
+      scenario: Penguin performs joyful snow dance on twilight ice field
+      input_asset:
+        description: use provided penguin render; keep proportions and facial features unchanged
+      environment:
+        location: open ice sheet with distant ridgeline
+        conditions:
+          sky: aurora ribbon with dusk gradient
+          atmosphere: gentle snowfall, low ground fog
+      camera:
+        rig: tripod dolly-in
+        movement: slow forward push with slight vertical bob
+      timeline:
+        - range: 0.00-0.33
+          action: penguin bobs and taps feet in place
+        - range: 0.33-0.66
+          action: wings extend outward, small hop and spin
+        - range: 0.66-1.00
+          action: faces camera, waves both flippers, snow sparkles trail
+      visuals:
+        effects: [volumetric snowflakes, rim light, subtle particle glints]
+      constraints:
+        avoid: [additional props, color changes, secondary characters]
+    memo: |
+      参照ペンギンをそのまま使い、薄暮の氷原でリズミカルに踊らせる。足踏み→小さな回転→手を振る流れで、オーロラと粉雪を演出。
+
+  - id: i2v-penguin-lab-shenanigans
+    name: Penguin Lab Shenanigans
+    category: video
+    type: i2v
+    filePrefix: penguin_lab
+    prompt: |
+      scenario: Penguin experiments in whimsical science lab
+      input_asset:
+        description: place provided penguin on lab counter; retain original proportions and face
+      environment:
+        location: compact lab with glassware and holographic monitors
+        conditions:
+          lighting: cool overhead strips, warm under-shelf practicals
+          props: bubbling beaker, floating tablet, oscillating gauges
+      camera:
+        rig: semicircular dolly
+        movement: smooth left-to-right arc with slight push-in
+      timeline:
+        - range: 0.00-0.40
+          action: penguin tilts head, scribbles on holographic tablet with flipper
+        - range: 0.40-0.75
+          action: beaker foams over, penguin recoils and flaps in surprise
+        - range: 0.75-1.00
+          action: penguin chuckles, wipes tablet, faces camera with proud nod
+      visuals:
+        effects: [volumetric lab haze, holographic UI flicker, foam particles]
+      constraints:
+        avoid: [explosions, human actors, outfit changes]
+    memo: |
+      コミカルな研究室でペンギンが実験。ホログラム板に書いてからビーカーの泡に驚き、最後は得意げにこちらを見る。
+
+  - id: i2v-penguin-surf-rush
+    name: Penguin Surf Rush
+    category: video
+    type: i2v
+    filePrefix: penguin_surf
+    prompt: |
+      scenario: Penguin rides glowing sunrise wave
+      input_asset:
+        description: align provided penguin onto stylized surfboard while maintaining body proportions and facial traits
+      environment:
+        location: open ocean with low rising sun
+        conditions:
+          wave: translucent crest with internal light rays
+          spray: fine mist trailing from board edges
+      camera:
+        rig: follow drone
+        movement: half-circle track around surfer with slight ascent toward finale
+      timeline:
+        - range: 0.00-0.35
+          action: penguin adjusts stance, flippers balance, wake forms
+        - range: 0.35-0.75
+          action: carves along wave face, camera wraps to reveal sunrise through crest
+        - range: 0.75-1.00
+          action: exits wave with splash, strikes victory pose toward camera
+      visuals:
+        effects: [god rays through water, sparkled spray, warm rim highlights]
+      constraints:
+        avoid: [human surfers, crowded beach, board detaching]
+    memo: |
+      夜明けの波でサーフィンするペンギン。体勢調整からカービング、スプラッシュ着水まで滑らかに繋ぎ、人間や群衆は登場させない。
+
+  # Additional diverse templates
+  - id: t2i-pico-team-adventure
+    name: Pico Team Adventure
+    category: image
+    type: t2i
+    filePrefix: pico_team_adventure
+    prompt: |
+      A 3D rendered scene of a cute penguin character leading a diverse group of animal friends (rabbit, fox, owl) through a magical ice cave with glowing crystals, volumetric lighting, adventure mood
+    memo: |
+      Picoペンギンが動物の仲間たち（うさぎ、きつね、ふくろう）と魔法の氷洞窟を探検するシーン
+
+  - id: t2i-retro-arcade-scene
+    name: Retro Arcade Scene
+    category: image
+    type: t2i
+    filePrefix: retro_arcade
+    prompt: |
+      Neon-lit retro arcade interior with glowing game cabinets, pixel art style mixed with modern 3D rendering, synthwave color palette, atmospheric fog, no people, nostalgic mood
+    memo: |
+      レトロアーケードの内部、ネオン照明とゲーム筐体、シンセウェーブカラー
+
+  - id: t2i-underwater-palace
+    name: Underwater Palace
+    category: image
+    type: t2i
+    filePrefix: underwater_palace
+    prompt: |
+      Ancient underwater palace ruins with bioluminescent sea creatures, god rays penetrating water surface, coral formations, mystical atmosphere, detailed architectural elements
+    memo: |
+      海底の古代宮殿遺跡、生物発光する海洋生物、神秘的な雰囲気
+
+  - id: t2i-floating-islands
+    name: Floating Sky Islands
+    category: image
+    type: t2i
+    filePrefix: floating_islands
+    prompt: |
+      Multiple floating islands connected by rope bridges, waterfalls cascading into clouds, flying whales in background, sunset lighting, fantasy landscape, studio quality render
+    memo: |
+      空に浮かぶ島々、ロープ橋で接続、雲に落ちる滝、空飛ぶクジラ
+
+  - id: t2i-cyberpunk-alley
+    name: Cyberpunk Alley
+    category: image
+    type: t2i
+    filePrefix: cyberpunk_alley
+    prompt: |
+      Narrow cyberpunk alleyway with holographic advertisements, rain-slicked streets reflecting neon lights, steam vents, dense urban atmosphere, no text or logos, moody lighting
+    memo: |
+      サイバーパンク路地、ホログラム広告、雨に濡れた道路、ネオン反射
+
+  - id: t2i-enchanted-library
+    name: Enchanted Library
+    category: image
+    type: t2i
+    filePrefix: enchanted_library
+    prompt: |
+      Magical library with floating books, spiral staircases reaching impossible heights, glowing orbs of light, ancient tomes, dust particles in sunbeams, mystical scholarly atmosphere
+    memo: |
+      魔法の図書館、浮遊する本、螺旋階段、光る球体、神秘的な学術空間
+
+  - id: i2i-style-vintage
+    name: Vintage Film Style
+    category: image
+    type: i2i
+    filePrefix: vintage_style
+    prompt: |
+      Transform input image to vintage film aesthetic with warm sepia tones, film grain texture, soft vignetting, retro color grading, nostalgic atmosphere
+    memo: |
+      入力画像をヴィンテージフィルム風に変換、セピア調、フィルムグレイン、レトロカラー
+
+  - id: i2i-pico-seasonal
+    name: Pico Seasonal Transform
+    category: image
+    type: i2i
+    filePrefix: pico_seasonal
+    prompt: |
+      Transform the penguin character to match different seasons - add spring flowers around, summer beach elements, autumn leaves, or winter snow effects while maintaining character design
+    memo: |
+      Picoペンギンの周りに季節要素を追加、春の花・夏のビーチ・秋の葉・冬の雪を配置
+
+  - id: i2i-lighting-dramatic
+    name: Dramatic Lighting Enhancement
+    category: image
+    type: i2i
+    filePrefix: dramatic_lighting
+    prompt: |
+      Enhance input image with dramatic cinematic lighting, strong shadows and highlights, rim lighting effects, volumetric atmosphere, professional photography mood
+    memo: |
+      入力画像にドラマチックなシネマティック照明を追加、強い影とハイライト、リムライト
+
+  - id: t2v-pico-snowboard-action
+    name: Pico Snowboard Action
+    category: video
+    type: t2v
+    filePrefix: pico_snowboard
+    prompt: |
+      Dynamic video of cute penguin character snowboarding down snowy mountain, performing jumps and tricks, snow spray effects, cinematic camera tracking, energetic motion
+    memo: |
+      Picoペンギンがスノーボードで山を滑降、ジャンプとトリック、雪しぶき効果
+
+  - id: t2v-time-lapse-city
+    name: Time-lapse City Evolution
+    category: video
+    type: t2v
+    filePrefix: timelapse_city
+    prompt: |
+      Time-lapse video showing futuristic city transitioning from sunrise to night, traffic light trails, clouds moving fast, building lights turning on, dynamic urban transformation
+    memo: |
+      未来都市の日の出から夜へのタイムラプス、交通光跡、雲の動き
+
+  - id: t2v-magical-transformation
+    name: Magical Transformation
+    category: video
+    type: t2v
+    filePrefix: magical_transform
+    prompt: |
+      Smooth transformation sequence of ordinary forest clearing becoming enchanted wonderland, flowers blooming, butterflies emerging, sparkles and light particles, fantasy transition
+    memo: |
+      普通の森が魔法の不思議の国に変化、花が咲き蝶が現れる
+
+  - id: i2v-pico-wake-up
+    name: Pico Wake Up Routine
+    category: video
+    type: i2v
+    filePrefix: pico_wake_up
+    prompt: |
+      Animate the penguin character waking up, stretching wings, yawning adorably, then hopping excitedly, morning sunlight streaming through ice cave opening
+    memo: |
+      Picoペンギンが起床、翼を伸ばし、あくび、そして興奮してジャンプ
+
+  - id: i2v-portrait-emotions
+    name: Portrait Emotion Cycle
+    category: video
+    type: i2v
+    filePrefix: portrait_emotions
+    prompt: |
+      Subtle animation of portrait transitioning through different emotions - neutral to smile to surprise to thoughtful, natural facial movements, professional lighting maintained
+    memo: |
+      ポートレートが様々な感情を表現、自然な表情変化
+
+  - id: t2m-adventure-epic
+    name: Epic Adventure Theme
+    category: sound
+    type: t2m
+    filePrefix: epic_adventure
+    prompt: |
+      Epic orchestral adventure music with soaring melodies, powerful brass sections, dramatic crescendos, heroic and inspiring atmosphere
+    memo: |
+      壮大なオーケストラ冒険音楽、高らかなメロディ、力強いブラス、ヒロイックな雰囲気
+
+  - id: t2m-peaceful-ambient
+    name: Peaceful Ambient Soundscape
+    category: sound
+    type: t2m
+    filePrefix: peaceful_ambient
+    prompt: |
+      Gentle ambient music with soft piano, nature sounds integration, calming atmosphere, meditation-friendly, flowing and serene
+    memo: |
+      穏やかなアンビエント音楽、ソフトピアノ、自然音、瞑想向け、流れるような静寂
+
+  - id: t2s-narrator-friendly
+    name: Friendly Narrator Voice
+    category: sound
+    type: t2s
+    filePrefix: narrator_friendly
+    prompt: |
+      Welcome to this magical journey through the enchanted forest, where every step reveals new wonders and delightful surprises await around every corner.
+    soundText: |
+      Welcome to this magical journey through the enchanted forest, where every step reveals new wonders and delightful surprises await around every corner.
+    memo: |
+      魔法の森への旅を案内するフレンドリーなナレーター音声、温かい語りかけ
+
+  - id: v2v-speed-ramp
+    name: Dynamic Speed Ramping
+    category: video
+    type: v2v
+    filePrefix: speed_ramp
+    prompt: |
+      Apply dynamic speed effects to input video - slow motion for dramatic moments, normal speed for dialogue, fast motion for action sequences, smooth transitions
+    memo: |
+      入力動画に動的スピード効果、ドラマチックシーンはスローモーション、アクションは高速
+
+  - id: i2i3d-object-modeling
+    name: 3D Object Modeling
+    category: 3d
+    type: i2i3d
+    filePrefix: 3d_object
+    prompt: |
+      Convert input image to detailed 3D model with accurate geometry, realistic textures, proper lighting setup, suitable for 3D printing or game assets
+    memo: |
+      入力画像から詳細な3Dモデルを生成、正確なジオメトリ、リアルなテクスチャ
+
+  # Sound Generation Templates
+  - id: t2a-nature-forest
+    name: Nature Forest Ambience
+    category: sound
+    type: t2a
+    filePrefix: forest_ambience
+    prompt: |
+      Create immersive forest soundscape with rustling leaves, distant bird calls, gentle wind through trees, occasional woodpecker tapping, peaceful natural atmosphere
+    memo: |
+      森の環境音、葉のそよぎ、鳥の鳴き声、木々を通る風、平和な自然の雰囲気
+
+  - id: t2a-urban-cityscape
+    name: Urban City Atmosphere
+    category: sound
+    type: t2a
+    filePrefix: city_atmosphere
+    prompt: |
+      Generate bustling city soundscape with distant traffic hum, occasional car horns, footsteps on pavement, street vendor calls, urban life energy
+    memo: |
+      都市の環境音、交通音、車のクラクション、歩道の足音、街の活気
+
+  - id: t2a-ocean-waves
+    name: Ocean Waves Serenity
+    category: sound
+    type: t2a
+    filePrefix: ocean_waves
+    prompt: |
+      Peaceful ocean sounds with gentle waves lapping shore, seagull cries in distance, soft breeze, rhythmic water movement, meditation-quality audio
+    memo: |
+      穏やかな海の音、岸に打ち寄せる波、遠くのカモメ、リズミカルな水の動き
+
+  - id: t2a-cafe-atmosphere
+    name: Cozy Cafe Ambience
+    category: sound
+    type: t2a
+    filePrefix: cafe_ambience
+    prompt: |
+      Warm coffee shop atmosphere with gentle chatter, espresso machine sounds, clinking cups, soft background jazz, comfortable social environment
+    memo: |
+      カフェの温かい雰囲気、会話、エスプレッソマシン音、カップの音、ジャズBGM
+
+  - id: t2a-rain-thunder
+    name: Rain and Thunder Storm
+    category: sound
+    type: t2a
+    filePrefix: rain_thunder
+    prompt: |
+      Dramatic thunderstorm with heavy rainfall, rolling thunder, lightning cracks, wind gusts, intense weather atmosphere with occasional calm moments
+    memo: |
+      激しい雷雨、豪雨、雷鳴、稲妻、風の突風、劇的な天候の音
+
+  # Japanese Text-to-Speech Templates
+  - id: t2s-greeting-cheerful-ja
+    name: 元気な挨拶 (日本語)
+    category: sound
+    type: t2s
+    filePrefix: greeting_cheerful_ja
+    prompt: |
+      みなさん、おはようございます！今日も素晴らしい一日になりそうですね。一緒に頑張っていきましょう！
+    soundText: |
+      みなさん、おはようございます！今日も素晴らしい一日になりそうですね。一緒に頑張っていきましょう！
+    memo: |
+      明るく元気な日本語の朝の挨拶、ポジティブなトーン
+
+  - id: t2s-storytelling-calm-ja
+    name: 穏やかな物語語り (日本語)
+    category: sound
+    type: t2s
+    filePrefix: storytelling_calm_ja
+    prompt: |
+      昔々、ある小さな村に、とても優しい心を持った少女が住んでいました。彼女は毎日、森の動物たちと仲良く過ごしていました。
+    soundText: |
+      昔々、ある小さな村に、とても優しい心を持った少女が住んでいました。彼女は毎日、森の動物たちと仲良く過ごしていました。
+    memo: |
+      落ち着いた日本語の物語語り、昔話風のナレーション
+
+  - id: t2s-explanation-formal-ja
+    name: 丁寧な説明 (日本語)
+    category: sound
+    type: t2s
+    filePrefix: explanation_formal_ja
+    prompt: |
+      本日は貴重なお時間をいただき、ありがとうございます。こちらの製品の特徴について、詳しくご説明させていただきます。
+    soundText: |
+      本日は貴重なお時間をいただき、ありがとうございます。こちらの製品の特徴について、詳しくご説明させていただきます。
+    memo: |
+      丁寧で正式な日本語の説明音声、ビジネス場面での使用
+
+  - id: t2s-encouragement-warm-ja
+    name: 温かい励まし (日本語)
+    category: sound
+    type: t2s
+    filePrefix: encouragement_warm_ja
+    prompt: |
+      大丈夫ですよ。あなたならきっとできます。一歩ずつ、ゆっくりと進んでいけばいいんです。私たちがついています。
+    soundText: |
+      大丈夫ですよ。あなたならきっとできます。一歩ずつ、ゆっくりと進んでいけばいいんです。私たちがついています。
+    memo: |
+      温かく励ます日本語音声、優しく支援的なトーン
+
+  - id: t2s-announcement-energetic-ja
+    name: 元気なアナウンス (日本語)
+    category: sound
+    type: t2s
+    filePrefix: announcement_energetic_ja
+    prompt: |
+      皆様、お待たせいたしました！いよいよ楽しいイベントの始まりです。最高の時間を一緒に過ごしましょう！
+    soundText: |
+      皆様、お待たせいたしました！いよいよ楽しいイベントの始まりです。最高の時間を一緒に過ごしましょう！
+    memo: |
+      エネルギッシュな日本語アナウンス、イベント司会風の明るい声
+
+  # Business Woman Image Generation Templates
+  - id: t2i-business-woman-professional
+    name: Professional Business Woman
+    category: image
+    type: t2i
+    filePrefix: business_woman_pro
+    prompt: |
+      Professional Japanese business woman in modern office environment, confident pose, wearing elegant navy suit, natural makeup, warm smile, clean background with soft bokeh, professional headshot style, high quality corporate photography
+    memo: |
+      プロフェッショナルなビジネス女性、モダンオフィス環境、エレガントなネイビースーツ
+
+  - id: t2i-business-woman-presentation
+    name: Business Woman Presentation
+    category: image
+    type: t2i
+    filePrefix: business_presentation
+    prompt: |
+      Confident business woman giving presentation in conference room, standing by digital display, professional attire, engaging gesture, diverse team listening in background, modern corporate setting, dynamic composition
+    memo: |
+      プレゼンテーション中のビジネス女性、会議室、デジタルディスプレイ、チーム
+
+  - id: t2i-business-woman-casual
+    name: Business Casual Woman
+    category: image
+    type: t2i
+    filePrefix: business_casual
+    prompt: |
+      Young professional woman in business casual attire, creative workspace, laptop and coffee, relaxed yet professional atmosphere, natural lighting, modern startup environment, authentic candid style
+    memo: |
+      ビジネスカジュアルな女性、クリエイティブワークスペース、スタートアップ環境
+
+  # Kamui Code Introduction Templates
+  - id: t2s-kamui-code-intro-ja
+    name: カムイコード紹介 (日本語)
+    category: sound
+    type: t2s
+    filePrefix: kamui_intro_ja
+    prompt: |
+      カムイコードは、画像、動画、音声、3Dモデルを簡単に生成できるAIサービスです。誰でも使いやすく、あなたの創造性を引き出します。
+    soundText: |
+      カムイコードは、画像、動画、音声、3Dモデルを簡単に生成できるAIサービスです。誰でも使いやすく、あなたの創造性を引き出します。
+    memo: |
+      カムイコードサービスの紹介、AI技術、クリエイティブコンテンツ生成
+
+  - id: t2s-kamui-code-features-ja
+    name: カムイコード機能説明 (日本語)
+    category: sound
+    type: t2s
+    filePrefix: kamui_features_ja
+    prompt: |
+      テキストから画像、画像から動画、音声合成まで。50種類以上のAIモデルを、カムイコード一つで利用できます。
+    soundText: |
+      テキストから画像、画像から動画、音声合成まで。50種類以上のAIモデルを、カムイコード一つで利用できます。
+    memo: |
+      カムイコードの機能説明、T2I、I2V、TTS、50種類以上のAIモデル
+
+  - id: t2s-kamui-code-benefit-ja
+    name: カムイコード利点 (日本語)
+    category: sound
+    type: t2s
+    filePrefix: kamui_benefit_ja
+    prompt: |
+      複数のAIを一つで。高品質、日本語対応。カムイコードで、クリエイティブがもっと簡単に。
+    soundText: |
+      複数のAIを一つで。高品質、日本語対応。カムイコードで、クリエイティブがもっと簡単に。
+    memo: |
+      カムイコードの利点、統合プラットフォーム、高品質、日本語最適化
+
+  # Demo Narration Templates
+  - id: t2s-demo-intro-ja
+    name: デモ開始ナレーション (日本語)
+    category: sound
+    type: t2s
+    filePrefix: demo_intro_ja
+    prompt: |
+      これから、最新AI技術のデモンストレーションを始めます。わずか数分で、驚くべきクリエイティブをご覧いただけます。
+    soundText: |
+      これから、最新AI技術のデモンストレーションを始めます。わずか数分で、驚くべきクリエイティブをご覧いただけます。
+    memo: |
+      デモ開始用のナレーション、ワクワク感を演出
+
+  - id: t2s-demo-feature-ja
+    name: 機能紹介ナレーション (日本語)
+    category: sound
+    type: t2s
+    filePrefix: demo_feature_ja
+    prompt: |
+      こちらの機能をご覧ください。ボタン一つで、プロクオリティの作品が完成します。操作はとてもシンプルです。
+    soundText: |
+      こちらの機能をご覧ください。ボタン一つで、プロクオリティの作品が完成します。操作はとてもシンプルです。
+    memo: |
+      機能紹介用ナレーション、わかりやすく説明
+
+  - id: t2s-demo-result-ja
+    name: 結果説明ナレーション (日本語)
+    category: sound
+    type: t2s
+    filePrefix: demo_result_ja
+    prompt: |
+      ご覧のとおり、わずか30秒でこのクオリティです。従来の方法では数時間かかっていた作業が、今では瞬時に完成します。
+    soundText: |
+      ご覧のとおり、わずか30秒でこのクオリティです。従来の方法では数時間かかっていた作業が、今では瞬時に完成します。
+    memo: |
+      結果説明用ナレーション、成果を強調
+
+  - id: t2s-demo-closing-ja
+    name: デモ終了ナレーション (日本語)
+    category: sound
+    type: t2s
+    filePrefix: demo_closing_ja
+    prompt: |
+      いかがでしたか？今すぐ無料トライアルをお試しいただけます。あなたの創造性を、次のレベルへ。
+    soundText: |
+      いかがでしたか？今すぐ無料トライアルをお試しいただけます。あなたの創造性を、次のレベルへ。
+    memo: |
+      デモ終了用ナレーション、CTAを含む
+
+  - id: t2s-demo-comparison-ja
+    name: 比較説明ナレーション (日本語)
+    category: sound
+    type: t2s
+    filePrefix: demo_comparison_ja
+    prompt: |
+      左が従来の方法、右がカムイコードです。違いは一目瞭然ですね。時間もコストも大幅に削減できます。
+    soundText: |
+      左が従来の方法、右がカムイコードです。違いは一目瞭然ですね。時間もコストも大幅に削減できます。
+    memo: |
+      比較説明用ナレーション、優位性をアピール
+
+  # Demo BGM Templates
+  - id: t2a-demo-technology
+    name: Technology Demo BGM
+    category: sound
+    type: t2a
+    filePrefix: demo_tech_bgm
+    prompt: |
+      Modern technology demonstration background music with synthetic electronic elements, ambient digital soundscapes, subtle tech beats, professional and innovative atmosphere, clean and sophisticated audio, perfect for AI and software demos
+    memo: |
+      テクノロジーデモ用BGM、電子音楽要素、デジタルサウンドスケープ、AIソフトウェアデモに最適
+
+  - id: t2a-demo-product
+    name: Product Introduction BGM
+    category: sound
+    type: t2a
+    filePrefix: demo_product_bgm
+    prompt: |
+      Friendly and approachable product introduction music with warm acoustic instruments, gentle piano melodies, positive and trustworthy mood, commercial-quality background audio for product showcases
+    memo: |
+      製品紹介用BGM、温かいアコースティック楽器、優しいピアノメロディ、信頼感のある商用クオリティ
+
+  - id: t2a-demo-corporate
+    name: Corporate Presentation BGM
+    category: sound
+    type: t2a
+    filePrefix: demo_corporate_bgm
+    prompt: |
+      Professional corporate presentation background music with orchestral elements, sophisticated arrangements, dignified and authoritative tone, suitable for business meetings and executive presentations
+    memo: |
+      企業プレゼン用BGM、オーケストラ要素、洗練されたアレンジ、権威ある上品なトーン
+
+  - id: t2a-demo-innovation
+    name: Innovation Showcase BGM
+    category: sound
+    type: t2a
+    filePrefix: demo_innovation_bgm
+    prompt: |
+      Futuristic innovation showcase music with experimental electronic sounds, cinematic build-ups, inspiring crescendos, cutting-edge atmosphere perfect for revealing breakthrough technologies and new concepts
+    memo: |
+      イノベーション発表用BGM、実験的電子音、シネマティック構成、革新技術発表に最適
+
+  - id: t2a-demo-achievement
+    name: Achievement Celebration BGM
+    category: sound
+    type: t2a
+    filePrefix: demo_achievement_bgm
+    prompt: |
+      Triumphant achievement celebration music with uplifting orchestral arrangements, victorious melodies, sense of accomplishment and success, perfect for showcasing results and milestones
+    memo: |
+      成果発表用BGM、高揚感のあるオーケストラ、勝利のメロディ、成功感と達成感を演出

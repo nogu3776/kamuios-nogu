@@ -1,0 +1,302 @@
+{
+  "a2v-kamui-kling-video-v1-pro-ai-avatar": {
+    "descriptionEn": "Kling AI Avatar Pro: Premium endpoint for creating avatar videos from images and audio.",
+    "descriptionJa": "Kling AI Avatar Pro：画像と音声からリアルなアバター動画を生成できるプレミアムエンドポイント。"
+  },
+  "a2v-kamui-veed-fabric-1-0": {
+    "descriptionEn": "Veed Fabric 1.0: Talking-head video generation with advanced lip-sync from still images and audio.",
+    "descriptionJa": "Veed Fabric 1.0：静止画と音声から高度なリップシンク付きのトーキングヘッド動画を生成するモデル。"
+  },
+  "file-upload-kamui-fal": {
+    "descriptionEn": "FAL File Uploader: Local helper endpoint for sending assets into FAL jobs.",
+    "descriptionJa": "FAL File Uploader：ローカルから FAL ジョブへファイルをアップロードする補助エンドポイント。"
+  },
+  "i2i-kamui-aura-sr": {
+    "descriptionEn": "Aura SR: High-quality image super-resolution model for crisp upscales.",
+    "descriptionJa": "Aura SR：高精細なアップスケールに対応する高品質な画像超解像モデル。"
+  },
+  "i2i-kamui-flux-kontext-lora": {
+    "descriptionEn": "FLUX Kontext LoRA: Context-aware LoRA workflows for precise image remixes.",
+    "descriptionJa": "FLUX Kontext LoRA：文脈に応じた高精度な画像リミックスを実現する LoRA ワークフロー。"
+  },
+  "i2i-kamui-flux-kontext-max": {
+    "descriptionEn": "FLUX Kontext Max: Maximum-quality Kontext pipeline with single and multi-image modes.",
+    "descriptionJa": "FLUX Kontext Max：単一・複数画像モードに対応した最高品質の Kontext パイプライン。"
+  },
+  "i2i-kamui-flux-krea-lora": {
+    "descriptionEn": "FLUX Krea LoRA I2I: Stylized image-to-image generations with community LoRAs.",
+    "descriptionJa": "FLUX Krea LoRA I2I：コミュニティ LoRA を活用したスタイライズ画像変換モデル。"
+  },
+  "i2i-kamui-gemini-25-flash-image-edit": {
+    "descriptionEn": "Gemini 2.5 Flash Image Edit: Fast multimodal editor for precise adjustments.",
+    "descriptionJa": "Gemini 2.5 Flash Image Edit：高速応答で細かな調整に強いマルチモーダル画像編集モデル。"
+  },
+  "i2i-kamui-ideogram-character-remix": {
+    "descriptionEn": "Ideogram Character Remix: Restyle consistent characters across different looks.",
+    "descriptionJa": "Ideogram Character Remix：同一キャラクターをさまざまなスタイルにリミックスできるモデル。"
+  },
+  "i2i-kamui-nano-banana-edit": {
+    "descriptionEn": "Nano Banana Edit: Lightweight editor for rapid image transformations.",
+    "descriptionJa": "Nano Banana Edit：素早く画像を変形できる軽量な編集モデル。"
+  },
+  "i2i-kamui-qwen-image-edit": {
+    "descriptionEn": "Qwen Image Edit: Text-driven image editing for everyday scenes.",
+    "descriptionJa": "Qwen Image Edit：日常シーンの画像をテキスト指示で編集できるモデル。"
+  },
+  "i2i-kamui-qwen-image-edit-plus": {
+    "descriptionEn": "Qwen Image Edit Plus: Batch-friendly editor with multi-image support and safety controls.",
+    "descriptionJa": "Qwen Image Edit Plus：複数画像や安全設定に対応したバッチ向け高機能エディタ。"
+  },
+  "i2i-kamui-seedream-v4-edit": {
+    "descriptionEn": "Seedream V4 Edit: Unified Bytedance model for high-quality scene revisions.",
+    "descriptionJa": "Seedream V4 Edit：統合アーキテクチャで高品質なシーン改変に対応する Bytedance モデル。"
+  },
+  "i2i-kamui-wan-25-preview": {
+    "descriptionEn": "WAN 2.5 Preview I2I: Multi-image fusion with subject-consistent editing.",
+    "descriptionJa": "WAN 2.5 Preview I2I：被写体の一貫性を保ちながら複数画像を融合・編集できるモデル。"
+  },
+  "i2i3d-kamui-hunyuan3d-v21": {
+    "descriptionEn": "Hunyuan3D v2.1: Image-to-3D generation with PBR-ready meshes.",
+    "descriptionJa": "Hunyuan3D v2.1：物理ベースレンダリング対応メッシュを生成する画像→3D モデル。"
+  },
+  "i2i3d-kamui-hyper3d-rodin-v2": {
+    "descriptionEn": "Hyper3D Rodin V2: Generate PBR-ready 3D assets from text prompts or up to 5 reference images.",
+    "descriptionJa": "Hyper3D Rodin V2：テキストや最大5枚の参照画像からPBR対応の3Dアセットを生成するモデル。"
+  },
+  "i2i3d-kamui-trellis": {
+    "descriptionEn": "Trellis: Sparse-to-dense image-to-3D reconstruction pipeline.",
+    "descriptionJa": "Trellis：スパース入力から高密度3Dを復元する画像→3D パイプライン。"
+  },
+  "i2i3d-kamui-tripo3d-image-to-3d": {
+    "descriptionEn": "Tripo3D v2.5: Single-image to textured 3D assets with PBR exports.",
+    "descriptionJa": "Tripo3D v2.5：1枚の画像からテクスチャ付き3Dアセットを生成し PBR 形式で出力できるモデル。"
+  },
+  "i2v-kamui-decart-lucy-14b": {
+    "descriptionEn": "Decart Lucy 14B: High-speed image-to-video synthesis for cinematic shots.",
+    "descriptionJa": "Decart Lucy 14B：シネマティックなショットを高速で生成する画像→動画モデル。"
+  },
+  "i2v-kamui-hailuo-02-fast": {
+    "descriptionEn": "Hailuo-02 Fast: Rapid Minimax image-to-video generation.",
+    "descriptionJa": "Hailuo-02 Fast：Minimax 系の高速な画像→動画生成モデル。"
+  },
+  "i2v-kamui-hailuo-02-pro": {
+    "descriptionEn": "Hailuo-02 Pro: Higher fidelity Minimax image-to-video pipeline.",
+    "descriptionJa": "Hailuo-02 Pro：高精細に対応する Minimax 系画像→動画パイプライン。"
+  },
+  "i2v-kamui-kling-video-v25-turbo-pro": {
+    "descriptionEn": "Kling v2.5 Turbo Pro I2V: Enhanced quality video generation from stills and prompts.",
+    "descriptionJa": "Kling v2.5 Turbo Pro I2V：静止画とプロンプトから高品質な動画を生成する上位モデル。"
+  },
+  "i2v-kamui-omnihuman": {
+    "descriptionEn": "OmniHuman I2V: Animate a portrait into a lifelike performance.",
+    "descriptionJa": "OmniHuman I2V：ポートレート画像からリアルな演技動画を生成するモデル。"
+  },
+  "i2v-kamui-omnihuman-v15": {
+    "descriptionEn": "OmniHuman v1.5: Upgraded lip-sync and expressive facial animation.",
+    "descriptionJa": "OmniHuman v1.5：リップシンクと表情表現を強化した最新版。"
+  },
+  "i2v-kamui-ovi": {
+    "descriptionEn": "OVI Image-to-Video: Animate keyframes into coherent shots with OVI’s cinematic motion engine.",
+    "descriptionJa": "OVI Image-to-Video：OVI のシネマティックモーションでキーフレームから滑らかなショットを生成するモデル。"
+  },
+  "i2v-kamui-seedance-v1-lite": {
+    "descriptionEn": "Seedance v1 Lite I2V: Lightweight dance animation from reference images.",
+    "descriptionJa": "Seedance v1 Lite I2V：リファレンス画像から軽量にダンスアニメを生成するモデル。"
+  },
+  "i2v-kamui-veo3-fast": {
+    "descriptionEn": "Veo 3 Fast I2V: Google’s accelerated image-to-video adapter.",
+    "descriptionJa": "Veo 3 Fast I2V：Google 製の高速画像→動画アダプター。"
+  },
+  "i2v-kamui-wan-25-preview": {
+    "descriptionEn": "WAN 2.5 Preview I2V: Pre-release WAN pipeline that evolves stills into stylized motion.",
+    "descriptionJa": "WAN 2.5 Preview I2V：静止画をスタイライズされたモーションへ変換する WAN プレビュー版パイプライン。"
+  },
+  "i2v-kamui-wan-v2-2-a14b": {
+    "descriptionEn": "WAN v2.2 a14B I2V: Stable diffusion-based cinematic motion from stills.",
+    "descriptionJa": "WAN v2.2 a14B I2V：静止画からシネマティックな動きを生成する拡散型モデル。"
+  },
+  "r2v-kamui-bytedance-seedance-v1-lite": {
+    "descriptionEn": "Seedance v1 Lite R2V: Animate motion sequences from reference poses.",
+    "descriptionJa": "Seedance v1 Lite R2V：リファレンスポーズからモーション動画を生成するモデル。"
+  },
+  "r2v-kamui-vidu-q1": {
+    "descriptionEn": "Vidu Q1 R2V: Reference-guided cinematic video generation.",
+    "descriptionJa": "Vidu Q1 R2V：参照画像を基にシネマティック動画を生成するモデル。"
+  },
+  "s2v-kamui-wan-v2-2-14b": {
+    "descriptionEn": "WAN v2.2 14B S2V: Transform narrated scripts into story-driven videos.",
+    "descriptionJa": "WAN v2.2 14B S2V：ナレーションや台本から物語性のある動画を生成するモデル。"
+  },
+  "t2a-kamui-stable-audio-v25": {
+    "descriptionEn": "Stable Audio 2.5: Text-to-audio compositions with modern sound design.",
+    "descriptionJa": "Stable Audio 2.5：テキストから最新サウンドデザインの音声・音楽を生成するモデル。"
+  },
+  "t2i-kamui-dreamina-v31": {
+    "descriptionEn": "Dreamina v3.1: Bytedance flagship text-to-image model for rich illustrations.",
+    "descriptionJa": "Dreamina v3.1：豊かな描写に強い Bytedance の主力テキスト→画像モデル。"
+  },
+  "t2i-kamui-flux-krea-lora": {
+    "descriptionEn": "FLUX Krea LoRA T2I: Stylized generations powered by community LoRAs.",
+    "descriptionJa": "FLUX Krea LoRA T2I：コミュニティ製 LoRA でスタイルを反映するテキスト→画像モデル。"
+  },
+  "t2i-kamui-flux-schnell": {
+    "descriptionEn": "FLUX Schnell: Fast diffusion model with coherent structure and speed.",
+    "descriptionJa": "FLUX Schnell：構図のまとまりと高速性を両立した拡散モデル。"
+  },
+  "t2i-kamui-flux-srpo": {
+    "descriptionEn": "FLUX SRPO: Next-gen photoreal diffusion with controllable detail.",
+    "descriptionJa": "FLUX SRPO：ディテール制御に優れる次世代フォトリアル拡散モデル。"
+  },
+  "t2i-kamui-gemini-25-flash-image": {
+    "descriptionEn": "Gemini 2.5 Flash Image: Lightweight generative vision model for quick drafts.",
+    "descriptionJa": "Gemini 2.5 Flash Image：素早く下絵を作れる軽量な生成ビジョンモデル。"
+  },
+  "t2i-kamui-hunyuan-image-v3": {
+    "descriptionEn": "Hunyuan Image v3: Tencent’s latest text-to-image model balancing realism and artistic control.",
+    "descriptionJa": "Hunyuan Image v3：リアルさと演出のコントロール性を両立する Tencent の最新テキスト→画像モデル。"
+  },
+  "t2i-kamui-ideogram-character-base": {
+    "descriptionEn": "Ideogram Character Base: Consistent character creation for branding and IP work.",
+    "descriptionJa": "Ideogram Character Base：ブランドやIP向けにキャラクター一貫性を維持するモデル。"
+  },
+  "t2i-kamui-imagen3": {
+    "descriptionEn": "Imagen 3: Google’s flagship high-fidelity text-to-image system.",
+    "descriptionJa": "Imagen 3：Google が提供する高精細なテキスト→画像システム。"
+  },
+  "t2i-kamui-imagen4-fast": {
+    "descriptionEn": "Imagen 4 Fast: Preview-speed variant optimized for rapid iteration.",
+    "descriptionJa": "Imagen 4 Fast：試作向けに高速化されたプレビュー版モデル。"
+  },
+  "t2i-kamui-imagen4-ultra": {
+    "descriptionEn": "Imagen 4 Ultra: Maximum quality variant with richer detail and lighting.",
+    "descriptionJa": "Imagen 4 Ultra：ディテールとライティングを最大限に引き出す最高品質版。"
+  },
+  "t2i-kamui-nano-banana": {
+    "descriptionEn": "Nano Banana T2I: Compact model for playful, stylized imagery.",
+    "descriptionJa": "Nano Banana T2I：遊び心あるスタイル画像に適したコンパクトモデル。"
+  },
+  "t2i-kamui-qwen-image": {
+    "descriptionEn": "Qwen Image: Versatile generative model from Alibaba’s Qwen suite.",
+    "descriptionJa": "Qwen Image：Alibaba Qwen スイートの汎用生成モデル。"
+  },
+  "t2i-kamui-seedream-v4": {
+    "descriptionEn": "Seedream V4: Unified Bytedance model balancing realism and stylization.",
+    "descriptionJa": "Seedream V4：リアルさとスタイル性を両立する Bytedance の統合モデル。"
+  },
+  "t2i-kamui-wan-25-preview": {
+    "descriptionEn": "WAN 2.5 Preview T2I: High-resolution preview of the next WAN upgrade.",
+    "descriptionJa": "WAN 2.5 Preview T2I：次期 WAN の高解像度プレビュー版。"
+  },
+  "t2i-kamui-wan-v2-2-a14b": {
+    "descriptionEn": "WAN v2.2 a14B T2I: Production-ready WAN diffusion with LoRA support.",
+    "descriptionJa": "WAN v2.2 a14B T2I：LoRA に対応した実運用向け WAN 拡散モデル。"
+  },
+  "t2m-kamui-lyria": {
+    "descriptionEn": "Lyria 2: Google’s musical diffusion for lyric-driven compositions.",
+    "descriptionJa": "Lyria 2：歌詞駆動の作曲に対応する Google の音楽生成モデル。"
+  },
+  "t2m-kamui-minimax-music-v15": {
+    "descriptionEn": "Minimax Music v1.5: Prompt-to-music with controllable style and lyrics.",
+    "descriptionJa": "Minimax Music v1.5：スタイルや歌詞を指定して楽曲を生成できるモデル。"
+  },
+  "t2s-kamui-minimax-speech-02-turbo": {
+    "descriptionEn": "MiniMax Speech 02 Turbo: Fast multilingual text-to-speech engine.",
+    "descriptionJa": "MiniMax Speech 02 Turbo：高速・多言語対応のテキスト読み上げエンジン。"
+  },
+  "t2v-kamui-kling-video-v25-turbo-pro": {
+    "descriptionEn": "Kling v2.5 Turbo Pro T2V: Cinematic text-to-video with enhanced control.",
+    "descriptionJa": "Kling v2.5 Turbo Pro T2V：高度な制御でシネマティック動画を生成するテキスト→動画モデル。"
+  },
+  "t2v-kamui-ovi": {
+    "descriptionEn": "OVI Text-to-Video: Generate richly lit, director-style sequences with timeline-aware controls.",
+    "descriptionJa": "OVI Text-to-Video：タイムライン制御で演出度の高いシークエンスを生成するテキスト→動画モデル。"
+  },
+  "t2v-kamui-veo3": {
+    "descriptionEn": "Veo 3 T2V: Google’s high-fidelity text-to-video generator.",
+    "descriptionJa": "Veo 3 T2V：Google 製の高精細テキスト→動画ジェネレータ。"
+  },
+  "t2v-kamui-veo3-fast": {
+    "descriptionEn": "Veo 3 Fast T2V: Accelerated edition for near real-time previews.",
+    "descriptionJa": "Veo 3 Fast T2V：準リアルタイムでプレビューできる高速版。"
+  },
+  "t2v-kamui-wan-25-preview": {
+    "descriptionEn": "WAN 2.5 Preview T2V: Next-generation text-to-video with 5s/10s renders and flexible aspect ratios.",
+    "descriptionJa": "WAN 2.5 Preview T2V：5秒/10秒レンダリングと柔軟なアスペクト比に対応した次世代テキスト→動画モデル。"
+  },
+  "t2v-kamui-wan-v2-2-5b-fast": {
+    "descriptionEn": "WAN v2.2 5B Fast: Efficient WAN text-to-video pipeline for quick drafts.",
+    "descriptionJa": "WAN v2.2 5B Fast：ラフ生成向けに効率化された WAN テキスト→動画パイプライン。"
+  },
+  "t2v-kamui-wan-v2-2-a14b": {
+    "descriptionEn": "WAN v2.2 a14B T2V: Large-capacity cinematic generator with LoRA options.",
+    "descriptionJa": "WAN v2.2 a14B T2V：LoRA オプションを備えた大容量シネマティック生成モデル。"
+  },
+  "t2visual-kamui-napkin": {
+    "descriptionEn": "Napkin Visuals: Generate diagrams and slides from text prompts (FAL page pending).",
+    "descriptionJa": "Napkin Visuals：テキストから図表やスライドを生成するモデル（FAL ページ準備中）。"
+  },
+  "train-kamui-flux-kontext": {
+    "descriptionEn": "Flux Kontext Trainer: Fine-tune Kontext adapters on custom datasets.",
+    "descriptionJa": "Flux Kontext Trainer：独自データセットで Kontext アダプタを微調整できるトレーナー。"
+  },
+  "tts-kamui-kling-video-v1": {
+    "descriptionEn": "Kling TTS v1: Kling voice library for lip-sync ready speech.",
+    "descriptionJa": "Kling TTS v1：リップシンクしやすい Kling 音声を生成する TTS モデル。"
+  },
+  "v2a-kamui-thinksound": {
+    "descriptionEn": "ThinkSound V2A: Convert visual cues into bespoke audio beds.",
+    "descriptionJa": "ThinkSound V2A：映像に合わせた独自サウンドを生成するモデル。"
+  },
+  "v2sfx-kamui-mirelo-video-to-sfx": {
+    "descriptionEn": "Mirelo Video to SFX (Replicate): Generate multiple sound-effect mixes directly from uploaded footage.",
+    "descriptionJa": "Mirelo Video to SFX（Replicate）：アップロードした映像から複数パターンの効果音ミックスを自動生成するモデル。"
+  },
+  "v2v-kamui-bria-bg-removal": {
+    "descriptionEn": "Bria Background Removal: Clean subject isolation for video pipelines.",
+    "descriptionJa": "Bria Background Removal：動画の被写体をきれいに切り抜くモデル。"
+  },
+  "v2v-kamui-creatify-lipsync": {
+    "descriptionEn": "Creatify Lipsync: Animate lip motion to match target audio.",
+    "descriptionJa": "Creatify Lipsync：音声に合わせて口元の動きを生成するモデル。"
+  },
+  "v2v-kamui-decart-lucy-edit-pro": {
+    "descriptionEn": "Decart Lucy Edit Pro: Prompt-driven video restyling with rich controls.",
+    "descriptionJa": "Decart Lucy Edit Pro：プロンプトで自在に動画スタイルを変換できるモデル。"
+  },
+  "v2v-kamui-heygen-video-translate": {
+    "descriptionEn": "HeyGen Video Translate: Multilingual dubbing with accurate lip match (link pending).",
+    "descriptionJa": "HeyGen Video Translate：多言語吹き替えと正確なリップ同期を実現するモデル（リンク準備中）。"
+  },
+  "v2v-kamui-hunyuan-video-foley": {
+    "descriptionEn": "Hunyuan Video Foley: Add spatial sound design to your footage.",
+    "descriptionJa": "Hunyuan Video Foley：映像に立体的な効果音を付与するモデル。"
+  },
+  "v2v-kamui-luma-ray2": {
+    "descriptionEn": "Luma Ray 2: Modify videos with Dream Machine Ray-grade effects.",
+    "descriptionJa": "Luma Ray 2：Dream Machine Ray 相当のエフェクトで動画を変換するモデル。"
+  },
+  "v2v-kamui-minimax-voice": {
+    "descriptionEn": "MiniMax Voice Design: Generate bespoke synthetic voices for avatars.",
+    "descriptionJa": "MiniMax Voice Design：アバター向けのカスタム音声を生成するモデル。"
+  },
+  "v2v-kamui-pixverse-extend": {
+    "descriptionEn": "Pixverse Extend: Expand shots beyond the original framing.",
+    "descriptionJa": "Pixverse Extend：元のフレーミングを越えて映像を拡張するモデル。"
+  },
+  "v2v-kamui-pixverse-lipsync": {
+    "descriptionEn": "Pixverse Lipsync: Sync character mouths to dialogue audio.",
+    "descriptionJa": "Pixverse Lipsync：キャラクターの口パクを音声に同期させるモデル。"
+  },
+  "v2v-kamui-runway-aleph": {
+    "descriptionEn": "Runway Gen-4 Aleph: Advanced video-to-video transformations (link pending).",
+    "descriptionJa": "Runway Gen-4 Aleph：高度な動画→動画変換モデル（リンク準備中）。"
+  },
+  "v2v-kamui-topaz-upscale": {
+    "descriptionEn": "Topaz Video Upscale: Super-resolve footage with AI detail recovery.",
+    "descriptionJa": "Topaz Video Upscale：AI でディテールを復元しながら動画を高解像度化するモデル。"
+  },
+  "v2v-kamui-wan-v2-2-14b-animate-replace": {
+    "descriptionEn": "WAN v2.2 14B Animate Replace: Swap subjects in motion while preserving scene context.",
+    "descriptionJa": "WAN v2.2 14B Animate Replace：動きのあるシーンで被写体を差し替えても背景文脈を保つモデル。"
+  }
+}
