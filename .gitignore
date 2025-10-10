@@ -20,7 +20,6 @@ Thumbs.db
 *.swp
 *.swo
 *~
-.claude/
 
 # Logs
 *.log
@@ -58,15 +57,6 @@ static/data/showcase/history.json
 static/data/showcase/prompt-template-prefs.json
 static/data/showcase/sora-index.json
 static/showcase/
-promos/
 
 # MCP configs (local only)
 mcp/
-
-# Local tooling indexes
-.cursorindexingignore
-.cursor/
-
-# Local documentation & spec artifacts
-.specstory/
-docs/
