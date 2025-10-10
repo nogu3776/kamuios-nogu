@@ -634,72 +634,93 @@
       </div> <!-- /app -->
 
       <script>
-        // トグル切り替え
-        const buttons = document.querySelectorAll('.toggle-btn');
-        buttons.forEach(btn => btn.addEventListener('click', () => {
-          const mode = btn.dataset.mode;
-          document.body.setAttribute('data-mode', mode);
-          document.querySelector('.view-spread').style.display = (mode === 'spread') ? 'block' : 'none';
-          document.querySelector('.view-vertical').style.display = (mode === 'spread') ? 'none' : 'block';
-          buttons.forEach(b => b.classList.toggle('active', b === btn));
-        }));
-
-        // 画像モード（鉛筆/実写）切替
-        const imgBtns = document.querySelectorAll('.img-toggle-btn');
-        function applyImageMode(mode) {
-          document.body.setAttribute('data-image-mode', mode);
-          document.querySelectorAll('.frame img[data-sketch-src]').forEach(img => {
-            const sketch = img.getAttribute('data-sketch-src');
-            const live = img.getAttribute('data-live-src') || sketch;
-            img.src = (mode === 'live') ? live : sketch;
+        (() => {
+          // トグル切り替え
+          const buttons = document.querySelectorAll('.toggle-btn');
+          buttons.forEach((btn) => {
+            btn.addEventListener('click', () => {
+              const mode = btn.dataset.mode;
+              const app = document.querySelector('.storyboard-app');
+              if (app) app.setAttribute('data-mode', mode);
+              const spread = document.querySelector('.view-spread');
+              const vertical = document.querySelector('.view-vertical');
+              if (spread) spread.style.display = (mode === 'spread') ? 'block' : 'none';
+              if (vertical) vertical.style.display = (mode === 'spread') ? 'none' : 'block';
+              buttons.forEach((b) => b.classList.toggle('active', b === btn));
+            });
           });
-          imgBtns.forEach(b => b.classList.toggle('active', b.dataset.image === mode));
-        }
-        imgBtns.forEach(btn => btn.addEventListener('click', () => applyImageMode(btn.dataset.image)));
-        // メディアモード切替（静止画/動画）
-        const mediaBtns = document.querySelectorAll('.media-btn');
-        function applyMediaMode(mode) {
-          document.body.setAttribute('data-media-mode', mode);
-          document.querySelectorAll('.frame').forEach(frame => {
-            const img = frame.querySelector('img');
-            const vid = frame.querySelector('video.vid');
-            if (!img && !vid) return;
-            if (mode === 'image') {
-              if (vid) {
-                try { vid.pause(); } catch (e) {}
-                vid.removeAttribute('src');
-                vid.load();
-                vid.style.display = 'none';
-              }
-              if (img) img.style.display = 'block';
-            } else {
-              // video
-              if (img) img.style.display = 'none';
-              if (vid) {
-                const src = vid.getAttribute('data-video-src');
-                if (!src) { vid.style.display = 'none'; return; }
-                // セットしてロード
-                if (vid.getAttribute('src') !== src) {
-                  vid.setAttribute('src', src);
+
+          // 画像モード（鉛筆/実写）切替
+          const imgBtns = document.querySelectorAll('.img-toggle-btn');
+          const applyImageMode = (mode) => {
+            const app = document.querySelector('.storyboard-app');
+            if (app) app.setAttribute('data-image-mode', mode);
+            document.querySelectorAll('.frame img[data-sketch-src]').forEach((img) => {
+              const sketch = img.getAttribute('data-sketch-src');
+              const live = img.getAttribute('data-live-src') || sketch;
+              img.src = (mode === 'live') ? live : sketch;
+            });
+            imgBtns.forEach((b) => b.classList.toggle('active', b.dataset.image === mode));
+          };
+          imgBtns.forEach((btn) => btn.addEventListener('click', () => applyImageMode(btn.dataset.image)));
+
+          // メディアモード切替（静止画/動画）
+          const mediaBtns = document.querySelectorAll('.media-btn');
+          const applyMediaMode = (mode) => {
+            const app = document.querySelector('.storyboard-app');
+            if (app) app.setAttribute('data-media-mode', mode);
+            document.querySelectorAll('.frame').forEach((frame) => {
+              const img = frame.querySelector('img');
+              const vid = frame.querySelector('video.vid');
+              if (!img && !vid) return;
+              if (mode === 'image') {
+                if (vid) {
+                  try {
+                    vid.pause();
+                  } catch (err) {}
+                  vid.removeAttribute('src');
+                  vid.load();
+                  vid.style.display = 'none';
                 }
-                vid.load();
-                vid.onloadedmetadata = () => {
-                  vid.style.display = 'block';
-                  const p = vid.play(); if (p && p.catch) p.catch(() => {});
-                };
-                vid.onerror = () => { vid.style.display = 'none'; };
+                if (img) img.style.display = 'block';
+              } else {
+                if (img) img.style.display = 'none';
+                if (vid) {
+                  const src = vid.getAttribute('data-video-src');
+                  if (!src) {
+                    vid.style.display = 'none';
+                    return;
+                  }
+                  if (vid.getAttribute('src') !== src) {
+                    vid.setAttribute('src', src);
+                  }
+                  vid.load();
+                  vid.onloadedmetadata = () => {
+                    vid.style.display = 'block';
+                    const playPromise = vid.play();
+                    if (playPromise && typeof playPromise.catch === 'function') {
+                      playPromise.catch(() => {});
+                    }
+                  };
+                  vid.onerror = () => {
+                    vid.style.display = 'none';
+                  };
+                }
               }
-            }
-          });
-          mediaBtns.forEach(b => b.classList.toggle('active', b.dataset.media === mode));
-        }
-        mediaBtns.forEach(btn => btn.addEventListener('click', () => applyMediaMode(btn.dataset.media)));
+            });
+            mediaBtns.forEach((b) => b.classList.toggle('active', b.dataset.media === mode));
+          };
+          mediaBtns.forEach((btn) => btn.addEventListener('click', () => applyMediaMode(btn.dataset.media)));
 
-        // 初期モード適用
-        applyImageMode(document.body.getAttribute('data-image-mode') || 'sketch');
-        applyMediaMode(document.body.getAttribute('data-media-mode') || 'image');
-
-        // グリッドレイアウトに統一したため、上下位置の補正処理は不要
+          // 初期モード適用
+          const app = document.querySelector('.storyboard-app');
+          if (app) {
+            applyImageMode(app.getAttribute('data-image-mode') || 'sketch');
+            applyMediaMode(app.getAttribute('data-media-mode') || 'image');
+          }
+        })();
       </script>
+
+
     </body>
     </html>

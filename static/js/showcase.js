@@ -1,13 +1,281 @@
 import installLiveReloadGuard from './live-reload-guard.js';
 import showcaseTemplate from './templates/showcase-ui.js';
+import {
+  API_BASE,
+  SHOWCASE_API_BASE,
+  HISTORY_API_ENDPOINT,
+  TEMPLATES_API_ENDPOINT,
+  PROMPT_GENERATOR_ENDPOINT,
+  RELOAD_RELEASE_DELAY_MS,
+  DEFAULT_ACTIVE_CATEGORY,
+  ALL_CATEGORY_ID,
+  ALL_CATEGORY_LABEL,
+  CATEGORY_DEFINITIONS,
+  CATEGORY_DEFINITION_MAP,
+  PREFIX_TO_CATEGORY,
+  TYPE_PREFIX_TO_CATEGORY,
+  SUPPORTED_CATEGORIES,
+  CATEGORY_LABELS,
+  PREFIXES_REQUIRING_MEDIA,
+  IMAGE_EXTENSIONS,
+  VIDEO_EXTENSIONS,
+  AUDIO_EXTENSIONS,
+  THREED_EXTENSIONS,
+  MIME_EXTENSION_OVERRIDES,
+  MEDIA_HINTS,
+  MEDIA_FILTER_PRIORITY,
+  MEDIA_SELECTION_TYPE_ORDER,
+  MEDIA_INPUT_ALLOWED_TYPES,
+  MEDIA_HINT_LOOKUP,
+  MEDIA_PARAM_BADGE_EXCLUDE_TOKENS,
+  MEDIA_PARAM_INDICATOR_TOKENS,
+  MEDIA_TYPE_DISPLAY,
+  SOUND_TEXT_PARAM_KEYS,
+  PROMPT_GENERATOR_DEFAULT_MODE,
+  PROMPT_GENERATOR_DEFAULT_TYPE,
+  PROMPT_GENERATOR_MODES,
+  PROMPT_GENERATOR_MAX_SUGGESTIONS,
+  PROMPT_GENERATOR_DEFAULT_VARIANTS,
+  PROMPT_GENERATOR_STATUS_TIMEOUT_MS,
+  PROMPT_GENERATOR_LYRICS_ENABLED_TYPES,
+  PROMPT_GENERATOR_LYRICS_LANGUAGE_OPTIONS,
+  PROMPT_GENERATOR_LYRICS_KEYWORD_LIMIT,
+  PROMPT_GENERATOR_LYRICS_CHAR_MIN,
+  PROMPT_GENERATOR_LYRICS_CHAR_MAX,
+  PROMPT_GENERATOR_LYRICS_KEYWORDS_MAX_LENGTH,
+  PROMPT_GENERATOR_LYRICS_STRUCTURE_MAX_LENGTH,
+  PROMPT_GENERATOR_LYRICS_SECTION_LIMIT,
+  PROMPT_GENERATOR_LYRICS_DEFAULTS,
+  PROMPT_GENERATOR_LYRICS_LEGACY_MAP,
+  PROMPT_GENERATOR_SOUND_TEXT_ENABLED_TYPES,
+  PROMPT_GENERATOR_SOUND_TEXT_AUTO_TYPES,
+  PROMPT_GENERATOR_SOUND_TEXT_CHAR_MIN,
+  PROMPT_GENERATOR_SOUND_TEXT_CHAR_MAX,
+  PROMPT_GENERATOR_SOUND_TEXT_KEYWORDS_MAX_LENGTH,
+  PROMPT_GENERATOR_SOUND_TEXT_NOTES_MAX_LENGTH,
+  PROMPT_GENERATOR_SOUND_TEXT_KEYWORD_LIMIT,
+  PROMPT_GENERATOR_SOUND_TEXT_DEFAULTS,
+  PROMPT_KEY_EXCLUDE_TOKENS,
+  PROMPT_GENERATOR_CATEGORY_OPTIONS,
+  ENGINE_PARAMETER_REQUIRED_HINTS,
+  ENGINE_PARAMETER_OPTION_SUPPRESS
+} from './showcase/constants.js';
+
+import {
+  analyzeEngineParameters,
+  categoryLabel,
+  detectPromptKeyFromProperties,
+  deriveMediaFilterTags,
+  engineRequiresPrompt,
+  engineRequiresSoundText,
+  extractEnginePrefix,
+  extractFileExtension,
+  extractFilename,
+  fallbackSlotLabel,
+  normalizeSlotLabel,
+  formatSlotLabelForDisplay,
+  normalizeAssignmentSlotLabels,
+  normalizeShowcaseAssetUrl,
+  getPromptKey,
+  groupMediaEntriesByType,
+  inferCategoryFromTokens,
+  inferMediaTypeFromParameter,
+  isPreviewable3dEntry,
+  isSupportedCategory,
+  normalizeCategory,
+  normalizeMediaGroupType,
+  normalizeTemplateEntry,
+  normalizeTypeToken,
+  requiresMediaForPrefix,
+  resolveTypePrefix,
+  sanitizeMediaEntryForPayload,
+  selectPrimaryMediaFilter,
+  tokenizeKey,
+  tokenizeMediaValue,
+  applyAssetSrcWithFallback
+} from './showcase/utils.js';
+import {
+  state,
+  createDefaultHistoryFilters,
+  sanitizeHistoryFilters,
+  ensureTemplateMenuFilters,
+  preferenceStorage,
+  getEngineMeta,
+  HISTORY_STORAGE_KEY,
+  TEMPLATE_STORAGE_KEY,
+  FILE_PREFIX_STORAGE_KEY,
+  FAILURE_VISIBILITY_STORAGE_KEY,
+  INPUT_VISIBILITY_STORAGE_KEY,
+  PARAM_VISIBILITY_STORAGE_KEY,
+  RESULTS_FILE_FILTER_STORAGE_KEY,
+  TEMPLATE_LIMIT,
+  MAX_HISTORY_ENTRIES,
+  HISTORY_DEFAULT_VISIBLE_COUNT,
+  HISTORY_VISIBLE_INCREMENT,
+  MEDIA_LIBRARY_DEFAULT_VISIBLE_COUNT,
+  MEDIA_LIBRARY_VISIBLE_INCREMENT,
+  PROMPT_PLACEHOLDER,
+  SOUND_TEXT_PLACEHOLDER,
+  PROMPT_MIN_HEIGHT,
+  PROMPT_MAX_HEIGHT,
+  JOB_POLL_INTERVAL_MS,
+  JOB_POLL_ERROR_DELAY_MS,
+  PARAMS_POPOVER_HIDE_DELAY_MS
+} from './showcase/state.js';
+import {
+  PROMPT_GENERATOR_TYPE_OPTIONS,
+  PROMPT_GENERATOR_GUIDANCE_BY_TYPE,
+  PROMPT_GENERATOR_GUIDANCE_BY_CATEGORY,
+  PROMPT_GENERATOR_VARIANT_OPTIONS,
+  PROMPT_GENERATOR_FLOAT_MARGIN,
+  PROMPT_GENERATOR_FLOAT_OFFSET,
+  PROMPT_GENERATOR_TYPE_CATEGORY_MAP
+} from './showcase/prompt-config.js';
+import {
+  ALL_TYPE_FILTERS,
+  knownTypesForCategory,
+  determineEngineTypeKey,
+  engineMatchesSearch,
+  filterEnginesByKeyword,
+  getEnginesInCategory,
+  createDisplayOrderMap,
+  resolveEngineDisplayOrder,
+  deriveEngineLabel,
+  deriveDocumentationUrl,
+  loadDocMetadata,
+  getDocMetadata,
+  ensureEngineInputs
+} from './showcase/engine.js';
+import {
+  cloneParameterDefault,
+  getSchemaDefaultValue,
+  ensureParameterDefaults
+} from './showcase/parameters.js';
+import {
+  openParamsPopover,
+  closeParamsPopover,
+  scheduleParamsPopoverClose,
+  cancelParamsPopoverClose,
+  isParamsPopoverEngaged,
+  getActiveParamsPopover
+} from './showcase/param-ui.js';
+import {
+  attachHoverPlayback,
+  bindShowcaseMediaLifecycle,
+  applyLoopSettingToMedia,
+  updateBatchControlVisuals,
+  registerBatchControlGroup,
+  computeMediaSlotDefinitions,
+  getMediaSlotAssignments,
+  findSlotDefinitionById,
+  findNextEmptySlotId,
+  resolveActiveMediaSlot,
+  assignMediaToSlot,
+  createMediaSelectionPayload,
+  getSelectedMediaList,
+  setSelectedMediaList,
+  registerMediaSelectionListener,
+  deriveMediaBindingValue,
+  buildMediaAssignmentsForEngine,
+  resolveMediaEntryType,
+  closeLightbox,
+  configureMediaLightboxHooks,
+  render3dDownloadMessage,
+  mount3dPreview,
+  createLightboxEntryFromSource,
+  createLightboxEntriesFromSources,
+  openMediaLightbox,
+  createResultInputThumb,
+  hasMediaUrl,
+  loadMediaLibrary,
+  normalizeFileTimestamp,
+  assignMediaOrderLookup,
+  getMediaSelectionOrderInfo,
+  renderMediaLibrary,
+  removeSelectedMediaEntry,
+  clearAllMediaSelections,
+  shouldUseMediaSlotLayout,
+  configureMediaUiHandlers
+} from './showcase/media.js';
 
 installLiveReloadGuard({ alwaysBlockReload: true });
 
-const API_BASE = '/api/mcp';
-const SHOWCASE_API_BASE = '/api/showcase';
-const HISTORY_API_ENDPOINT = `${SHOWCASE_API_BASE}/history`;
-const TEMPLATES_API_ENDPOINT = `${SHOWCASE_API_BASE}/templates`;
-const RELOAD_RELEASE_DELAY_MS = 15000;
+const SHOWCASE_LAYOUT_MIN_HEIGHT = 780;
+const SHOWCASE_LAYOUT_MAX_HEIGHT = 4440;
+const SHOWCASE_ENGINE_HEIGHT_PADDING = 96;
+const SHOWCASE_ENGINE_LIST_MIN_HEIGHT = 360;
+const SHOWCASE_LAYOUT_EPSILON = 6;
+let showcaseLayoutSyncHandle = null;
+let lastShowcaseLayoutHeight = 0;
+
+function scheduleShowcaseLayoutSync() {
+  if (typeof window === 'undefined') return;
+  if (showcaseLayoutSyncHandle !== null) return;
+  showcaseLayoutSyncHandle = window.requestAnimationFrame(() => {
+    showcaseLayoutSyncHandle = null;
+    syncShowcaseLayoutHeight();
+  });
+}
+
+function syncShowcaseLayoutHeight() {
+  if (typeof document === 'undefined') return;
+  const wrapper = document.querySelector('.kc-showcase-wrapper');
+  if (!(wrapper instanceof HTMLElement)) return;
+  const enginesColumn = wrapper.querySelector('.kc-column--engines');
+  const selectionSummary = document.getElementById('kc-selection-summary');
+  const enginesPanelBody = enginesColumn?.querySelector('.kc-panel__body--engines');
+  const enginesToolbar = document.getElementById('kc-engine-toolbar');
+
+  if (!(enginesColumn instanceof HTMLElement) || !(selectionSummary instanceof HTMLElement) || !(enginesPanelBody instanceof HTMLElement)) {
+    if (lastShowcaseLayoutHeight !== 0) {
+      wrapper.style.removeProperty('--kc-showcase-height');
+      lastShowcaseLayoutHeight = 0;
+    }
+    return;
+  }
+
+  const viewportHeight = Math.max(
+    SHOWCASE_LAYOUT_MIN_HEIGHT,
+    Number.isFinite(window.innerHeight) ? window.innerHeight : 0
+  );
+
+  const columnHeight = Math.ceil(enginesColumn.scrollHeight || enginesColumn.offsetHeight || 0);
+  const toolbarHeight = Math.ceil(enginesToolbar?.getBoundingClientRect().height || 0);
+  const bodyHeight = Math.ceil(enginesPanelBody.getBoundingClientRect().height || 0);
+  const desiredBodyHeight = toolbarHeight + SHOWCASE_ENGINE_LIST_MIN_HEIGHT;
+
+  let targetHeight = Math.max(
+    viewportHeight,
+    columnHeight + SHOWCASE_ENGINE_HEIGHT_PADDING
+  );
+
+  if (bodyHeight < desiredBodyHeight) {
+    targetHeight += desiredBodyHeight - bodyHeight;
+  }
+
+  targetHeight = Math.min(SHOWCASE_LAYOUT_MAX_HEIGHT, targetHeight);
+
+  if (targetHeight <= viewportHeight + SHOWCASE_LAYOUT_EPSILON) {
+    if (lastShowcaseLayoutHeight !== 0) {
+      wrapper.style.removeProperty('--kc-showcase-height');
+      lastShowcaseLayoutHeight = 0;
+    }
+    return;
+  }
+
+  if (Math.abs(targetHeight - lastShowcaseLayoutHeight) <= SHOWCASE_LAYOUT_EPSILON) {
+    return;
+  }
+
+  lastShowcaseLayoutHeight = targetHeight;
+  wrapper.style.setProperty('--kc-showcase-height', `${targetHeight}px`);
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('resize', () => {
+    scheduleShowcaseLayoutSync();
+  });
+}
 
 function isShowcaseSyncDisabled() {
   if (typeof window === 'undefined') return false;
@@ -65,436 +333,6 @@ if (typeof window !== 'undefined') {
     setReloadBlock(false, { release: true, delayMs });
   };
 }
-const DEFAULT_ACTIVE_CATEGORY = 'image';
-const ALL_CATEGORY_ID = 'all';
-const ALL_CATEGORY_LABEL = 'ALL';
-
-const CATEGORY_DEFINITIONS = [
-  { id: 'image', label: 'IMAGE', prefixes: ['t2i', 'i2i'] },
-  { id: 'video', label: 'VIDEO', prefixes: ['t2v', 'i2v', 'r2v', 's2v', 'a2v', 'v2v'] },
-  { id: '3d', label: '3D', prefixes: ['i2i3d'] },
-  { id: 'sound', label: 'SOUND', prefixes: ['v2a', 'v2sfx', 't2a', 't2s', 'tts', 't2m'] },
-  { id: 'other', label: 'OTHER', prefixes: ['t2visual', 'file', 'train', 'misc'] }
-];
-
-const CATEGORY_DEFINITION_MAP = new Map(CATEGORY_DEFINITIONS.map((def) => [def.id, def]));
-const PREFIX_TO_CATEGORY = new Map();
-CATEGORY_DEFINITIONS.forEach((def) => {
-  (def.prefixes || []).forEach((prefix) => {
-    PREFIX_TO_CATEGORY.set(prefix, def.id);
-  });
-});
-const TYPE_PREFIX_TO_CATEGORY = PREFIX_TO_CATEGORY;
-
-const SUPPORTED_CATEGORIES = CATEGORY_DEFINITIONS.map((def) => def.id);
-const CATEGORY_LABELS = Object.fromEntries([
-  [ALL_CATEGORY_ID, ALL_CATEGORY_LABEL],
-  ...CATEGORY_DEFINITIONS.map((def) => [def.id, def.label])
-]);
-
-const PREFIXES_REQUIRING_MEDIA = new Set(['i2i', 'i2v', 'r2v', 'a2v', 'i2i3d']);
-
-const MEDIA_FILTERS = [
-  { id: 'all', label: 'all' },
-  { id: 'image', label: 'image' },
-  { id: 'video', label: 'video' },
-  { id: '3d', label: '3d' },
-  { id: 'sound', label: 'sound' }
-];
-
-function createDefaultHistoryFilters() {
-  return {
-    category: ALL_CATEGORY_ID,
-    prefix: 'all'
-  };
-}
-
-function sanitizeHistoryFilters(raw) {
-  const defaults = createDefaultHistoryFilters();
-  const filters = { ...defaults };
-  if (!raw || typeof raw !== 'object') {
-    return filters;
-  }
-
-  if (typeof raw.category === 'string') {
-    const candidate = raw.category.trim().toLowerCase();
-    if (candidate === ALL_CATEGORY_ID) {
-      filters.category = ALL_CATEGORY_ID;
-    } else if (candidate === 'other') {
-      filters.category = 'other';
-    } else if (isSupportedCategory(candidate)) {
-      filters.category = candidate;
-    }
-  }
-
-  if (typeof raw.prefix === 'string') {
-    const candidate = raw.prefix.trim().toLowerCase();
-    if (!candidate || candidate === 'all') {
-      filters.prefix = 'all';
-    } else if (candidate === 'other') {
-      filters.prefix = 'other';
-    } else {
-      const normalized = normalizeTypeToken(candidate);
-      filters.prefix = normalized || 'all';
-    }
-  }
-
-  return filters;
-}
-
-const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'tiff', 'tif', 'heic', 'heif']);
-const VIDEO_EXTENSIONS = new Set(['mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v', 'wmv']);
-const AUDIO_EXTENSIONS = new Set(['wav', 'mp3', 'aac', 'flac', 'ogg', 'm4a', 'aiff', 'wma', 'opus', 'mid', 'midi']);
-const THREED_EXTENSIONS = new Set(['obj', 'fbx', 'stl', 'glb', 'gltf', 'ply', 'usdz', 'usd', 'blend', '3ds', 'dae', 'stp', 'step', 'igs', 'iges', 'vrm']);
-
-const MIME_EXTENSION_OVERRIDES = Object.freeze({
-  'image/jpeg': 'jpg',
-  'image/jpg': 'jpg',
-  'image/pjpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-  'image/gif': 'gif',
-  'image/bmp': 'bmp',
-  'image/tiff': 'tiff',
-  'image/heic': 'heic',
-  'image/heif': 'heif',
-  'video/mp4': 'mp4',
-  'video/quicktime': 'mov',
-  'video/webm': 'webm',
-  'video/x-matroska': 'mkv',
-  'audio/wav': 'wav',
-  'audio/x-wav': 'wav',
-  'audio/mpeg': 'mp3',
-  'audio/mp3': 'mp3',
-  'audio/ogg': 'ogg',
-  'audio/flac': 'flac',
-  'audio/aac': 'aac',
-  'audio/x-m4a': 'm4a',
-  'audio/mp4': 'm4a',
-  'model/gltf-binary': 'glb',
-  'model/gltf+json': 'gltf',
-  'model/gltf': 'gltf',
-  'model/obj': 'obj',
-  'model/stl': 'stl',
-  'model/vnd.usdz+zip': 'usdz',
-  'model/vnd.usd+zip': 'usd',
-  'application/zip': 'zip',
-  'application/x-zip-compressed': 'zip',
-  'application/octet-stream': '',
-  'application/x-tar': 'tar'
-});
-
-const MEDIA_HINTS = {
-  sound: new Set([
-    'sound', 'audio', 'music', 'voice', 'speech', 'sfx', 'fx', 'vocals', 'binaural',
-    'wav', 'mp3', 'ogg', 'flac', 'm4a', 'aac', 'aiff', 'wma', 'opus', 'mid', 'midi',
-    't2a', 't2s', 'tts', 't2m'
-  ]),
-  video: new Set([
-    'video', 'vid', 'clip', 'movie', 'mp4', 'mov', 'webm', 'mkv', 'avi', 'm4v', 'mpg',
-    'mpeg', 'mp2', 'gifv', 't2v', 'i2v', 'v2v', 'r2v', 's2v', 'a2v'
-  ]),
-  '3d': new Set([
-    '3d', 'mesh', 'model', 'geometry', 'pointcloud', 'glb', 'gltf', 'fbx', 'obj', 'stl',
-    'ply', 'usd', 'usdz', 'blend', '3ds', 'dae', 'stp', 'step', 'igs', 'iges', 'vrm', 'cad'
-  ]),
-  image: new Set([
-    'image', 'img', 'photo', 'picture', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp',
-    'bitmap', 'tiff', 'tif', 'heic', 'heif', 'svg', 'psd', 'render', 'still'
-  ])
-};
-
-const MEDIA_FILTER_PRIORITY = ['3d', 'image', 'video', 'sound'];
-
-const MEDIA_SELECTION_TYPE_ORDER = ['image', 'video', 'sound', '3d', 'other'];
-
-const MEDIA_INPUT_ALLOWED_TYPES = new Set(['image', 'video', 'sound', '3d']);
-
-const MEDIA_HINT_LOOKUP = (() => {
-  const map = new Map();
-  Object.entries(MEDIA_HINTS).forEach(([key, set]) => {
-    set.forEach((token) => {
-      map.set(token, key);
-    });
-  });
-  return map;
-})();
-
-const PREVIEWABLE_3D_EXTENSIONS = new Set(['glb', 'gltf', 'usdz', 'usd', 'vrm']);
-const MODEL_VIEWER_MODULE_URL = 'https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js';
-const MODEL_VIEWER_SCRIPT_ATTR = 'data-kc-model-viewer';
-let modelViewerLoadPromise = null;
-
-const SOUND_TEXT_PARAM_KEYS = new Set([
-  'text',
-  'lyrics',
-  'lyrics_prompt',
-  'lyricsprompt',
-  'speech_text',
-  'speechtext',
-  'script',
-  'voice_text',
-  'voice_text_prompt'
-]);
-
-const PROMPT_GENERATOR_ENDPOINT = '/api/prompt/generate';
-const PROMPT_GENERATOR_DEFAULT_MODE = 'enhance';
-const PROMPT_GENERATOR_DEFAULT_TYPE = 't2i';
-const PROMPT_GENERATOR_MODES = [
-  { id: 'expand', label: '水平展開' },
-  { id: 'enhance', label: 'エンハンス' }
-];
-const PROMPT_GENERATOR_MAX_SUGGESTIONS = 8;
-const PROMPT_GENERATOR_DEFAULT_VARIANTS = 3;
-const PROMPT_GENERATOR_STATUS_TIMEOUT_MS = 3200;
-
-const PROMPT_GENERATOR_LYRICS_ENABLED_TYPES = new Set(['t2a', 't2m']);
-const PROMPT_GENERATOR_LYRICS_LANGUAGE_OPTIONS = ['ja', 'en'];
-const PROMPT_GENERATOR_LYRICS_KEYWORD_LIMIT = 8;
-const PROMPT_GENERATOR_LYRICS_CHAR_MIN = 60;
-const PROMPT_GENERATOR_LYRICS_CHAR_MAX = 1600;
-const PROMPT_GENERATOR_LYRICS_KEYWORDS_MAX_LENGTH = 240;
-const PROMPT_GENERATOR_LYRICS_STRUCTURE_MAX_LENGTH = 360;
-const PROMPT_GENERATOR_LYRICS_SECTION_LIMIT = 12;
-const PROMPT_GENERATOR_LYRICS_DEFAULTS = {
-  enabled: false,
-  structure: '[Intro]\n[Verse 1]\n[Pre-Chorus]\n[Chorus]\n[Verse 2]\n[Bridge]\n[Outro]',
-  charTarget: 240,
-  language: 'ja',
-  includeSectionLabels: true,
-  keywords: ''
-};
-const PROMPT_GENERATOR_LYRICS_LEGACY_MAP = {
-  verse_chorus: '[Intro]\n[Verse 1]\n[Chorus]\n[Verse 2]\n[Chorus]',
-  verse_chorus_bridge: '[Intro]\n[Verse 1]\n[Chorus]\n[Verse 2]\n[Bridge]\n[Chorus]',
-  verse_chorus_outro: '[Intro]\n[Verse 1]\n[Chorus]\n[Verse 2]\n[Chorus]\n[Outro]',
-  verse_chorus_bridge_outro: '[Intro]\n[Verse 1]\n[Chorus]\n[Verse 2]\n[Bridge]\n[Chorus]\n[Outro]',
-  verse_only: '[Intro]\n[Verse 1]\n[Verse 2]\n[Verse 3]'
-};
-
-const PROMPT_GENERATOR_SOUND_TEXT_ENABLED_TYPES = new Set(['t2s', 'tts']);
-const PROMPT_GENERATOR_SOUND_TEXT_AUTO_TYPES = new Set(['t2s', 'tts']);
-const PROMPT_GENERATOR_SOUND_TEXT_CHAR_MIN = 40;
-const PROMPT_GENERATOR_SOUND_TEXT_CHAR_MAX = 800;
-const PROMPT_GENERATOR_SOUND_TEXT_KEYWORDS_MAX_LENGTH = 200;
-const PROMPT_GENERATOR_SOUND_TEXT_NOTES_MAX_LENGTH = 360;
-const PROMPT_GENERATOR_SOUND_TEXT_KEYWORD_LIMIT = 10;
-const PROMPT_GENERATOR_SOUND_TEXT_DEFAULTS = {
-  enabled: false,
-  charTarget: 180,
-  language: 'ja',
-  keywords: '',
-  notes: ''
-};
-
-const PROMPT_KEY_EXCLUDE_TOKENS = new Set(['negative', 'anti', 'avoid']);
-
-const PROMPT_GENERATOR_CATEGORY_OPTIONS = [
-  { id: ALL_CATEGORY_ID, label: ALL_CATEGORY_LABEL },
-  ...CATEGORY_DEFINITIONS.map((def) => ({ id: def.id, label: def.label }))
-];
-
-const PROMPT_GENERATOR_TYPE_OPTIONS = (() => {
-  const seen = new Set();
-  const options = [];
-  CATEGORY_DEFINITIONS.forEach((def) => {
-    def.prefixes.forEach((prefix) => {
-      const normalized = normalizeTypeToken(prefix);
-      if (!normalized || seen.has(normalized)) return;
-      options.push({
-        id: normalized,
-        label: prefix.toUpperCase(),
-        category: def.id
-      });
-      seen.add(normalized);
-    });
-  });
-  if (!seen.has('other')) {
-    options.push({ id: 'other', label: 'OTHER', category: 'other' });
-    seen.add('other');
-  }
-  options.sort((a, b) => a.id.localeCompare(b.id));
-  return options;
-})();
-
-function buildGuidanceModes({ enhanceEn, enhanceJa, expandEn, expandJa }) {
-  const enhancePack = {
-    en: enhanceEn,
-    ja: enhanceJa
-  };
-  const expandPack = {
-    en: expandEn || enhanceEn,
-    ja: expandJa || enhanceJa
-  };
-  return {
-    enhance: enhancePack,
-    expand: expandPack
-  };
-}
-
-const PROMPT_GENERATOR_GUIDANCE_BY_TYPE = new Map([
-  ['t2i', buildGuidanceModes({
-    enhanceEn: 'Text-to-image enhancement. Describe composition, key subjects, camera or lens choices, lighting, colour palette, materials, and mood in precise English detail. Avoid negative prompt syntax and keep instructions affirmative.',
-    enhanceJa: '静止画のクオリティを高める。構図・主要被写体・レンズやカメラ設定・照明・色調・質感・空気感を英語できめ細かく記述し、ネガティブな文法は使わない。',
-    expandEn: 'Text-to-image exploration. Produce conceptually diverse prompts that reinterpret the base idea across different genres, perspectives, compositions, and lighting setups. Each prompt should feel distinct yet relevant.',
-    expandJa: '静止画の水平展開。ベースのテーマを保ちながら、ジャンル・視点・構図・照明・表現手法を変えて印象の異なる案を提示する。各案は関連性を保ちつつ明確に差別化する。'
-  })],
-  ['i2i', buildGuidanceModes({
-    enhanceEn: 'Image-to-image enhancement. Respect the source image while clearly stating the exact elements to refine: structure, style, colours, materials, lighting, and post-processing.',
-    enhanceJa: '入力画像を活かしながら強化。輪郭・スタイル・色調・素材・ライティング・後処理など、調整したい要素を具体的に指示する。',
-    expandEn: 'Image-to-image exploration. Suggest multiple creative reinterpretations of the source, experimenting with new art directions, moods, materials, or storytelling angles while keeping key identities recognisable.',
-    expandJa: '入力画像の水平展開。雰囲気や質感、ストーリーの切り口を変えた複数案を示し、元の特徴を保ちながら大胆に発想を広げる。'
-  })],
-  ['t2v', buildGuidanceModes({
-    enhanceEn: 'Text-to-video enhancement. Specify scene structure, camera movements, pacing, transitions, lighting design, materials, duration, and emotional tone with cinematic precision.',
-    enhanceJa: 'テキストから映像を詳細化。シーン構成、カメラワーク、テンポ、カット間の繋ぎ、照明、質感、尺、感情の流れを映画的に描写する。',
-    expandEn: 'Text-to-video exploration. Propose several distinct video directions that reinterpret the idea with different genres, visual languages, camera strategies, and pacing structures.',
-    expandJa: 'テキストから映像を水平展開。ジャンルや映像言語、カメラ手法、テンポ構成を変え、コンセプトを別視点で表現する複数案を用意する。'
-  })],
-  ['i2v', buildGuidanceModes({
-    enhanceEn: 'Image/keyframe to video enhancement. Detail the narrative between start and end visuals, transitional moments, motion arcs, lighting evolution, and atmosphere continuity.',
-    enhanceJa: 'キーイメージから映像を強化。開始と終了の意図、トランジション、モーションの流れ、ライティング変化、空気感の継続性を具体化する。',
-    expandEn: 'Image/keyframe to video exploration. Present alternative motion paths, storytelling beats, camera journeys, and lighting moods that reinterpret how the start/end imagery develops.',
-    expandJa: 'キーイメージを基点に水平展開。モーションルートやストーリー展開、カメラの移動、光の設計を変えて多面的なバリエーションを示す。'
-  })],
-  ['v2v', buildGuidanceModes({
-    enhanceEn: 'Video-to-video enhancement. Capture notable traits of the source while defining target style, effects, compositing layers, motion adjustments, and colour grading.',
-    enhanceJa: '既存動画を高品質化。元の特徴を押さえつつ、狙うスタイル、エフェクト、合成レイヤー、モーション調整、カラーグレーディングを設計する。',
-    expandEn: 'Video-to-video exploration. Outline contrasting reinterpretations of the footage—different genres, visual treatments, motion energy, and editing rhythms—to broaden creative directions.',
-    expandJa: '既存動画を水平展開。ジャンルや演出、動きの熱量、編集リズムを変化させ、複数のビジュアル方向性を提案する。'
-  })],
-  ['r2v', buildGuidanceModes({
-    enhanceEn: 'Reference-driven video enhancement. List the qualities to inherit from references, specify cinematic goals, motion design, and differentiation points between generated options.',
-    enhanceJa: '参照駆動の映像を強化。参照から継承する質感を列挙し、映像の狙い、モーション設計、各案の差別化ポイントを明示する。',
-    expandEn: 'Reference-driven video exploration. Combine references in novel ways, proposing distinct narrative arcs, compositions, lighting schemes, and pacing variations for each candidate.',
-    expandJa: '参照駆動の水平展開。複数の参照を組み合わせつつ、物語の展開、構図、照明、テンポを変えた代替案を提示する。'
-  })],
-  ['s2v', buildGuidanceModes({
-    enhanceEn: 'Sound-to-video enhancement. Sync visual beats to audio structure, defining scene choreography, rhythm, palette, lighting, and energy shifts in detail.',
-    enhanceJa: '音声起点の映像を強化。音の展開に合わせたシーン構成、リズム、カラーパレット、照明、エネルギー変化を詳細に指示する。',
-    expandEn: 'Sound-to-video exploration. Offer varied visual narratives that interpret the audio through different genres, tempos, visual motifs, and pacing strategies.',
-    expandJa: '音声起点の水平展開。音源を別ジャンル・テンポ・モチーフで解釈し、複数の映像ストーリーラインを提示する。'
-  })],
-  ['a2v', buildGuidanceModes({
-    enhanceEn: 'Audio-to-video enhancement. Align tempo, beat, and mood with clear visual motifs, colour design, motion style, transition timing, and finishing touches.',
-    enhanceJa: '音声ベースの映像を強化。テンポやビートに対応するモチーフ、色設計、モーションスタイル、トランジションのタイミングを明確化する。',
-    expandEn: 'Audio-to-video exploration. Produce contrasting visual treatments of the same audio by altering genre, motif, camera grammar, pacing, and climax expression.',
-    expandJa: '音声ベースの水平展開。同じ音源をジャンル・モチーフ・カメラ文法・テンポ・クライマックスの見せ方で差別化した複数案を作る。'
-  })],
-  ['i2i3d', buildGuidanceModes({
-    enhanceEn: 'Image-to-3D enhancement. Detail geometry, proportions, materials, surface detail, topology, usage context, and lighting rig requirements.',
-    enhanceJa: '画像から3D化を強化。形状・プロポーション・マテリアル・ディテール密度・トポロジー・用途・ライティング条件を具体的に示す。',
-    expandEn: 'Image-to-3D exploration. Suggest multiple 3D interpretations—alternative forms, scales, material treatments, and lighting moods—derived from the source concept.',
-    expandJa: '画像から3Dを水平展開。形状やスケール、質感、ライトセットを変えた複数の立体化アプローチを提案する。'
-  })],
-  ['t2a', buildGuidanceModes({
-    enhanceEn: 'Text-to-audio enhancement. Define tempo, time signature, genre, instrumentation, melodic/harmonic direction, mix, and production details.',
-    enhanceJa: 'テキストから音を強化。テンポ、拍子、ジャンル、編成、メロディー/ハーモニーの方向性、ミックスや処理を明記する。',
-    expandEn: 'Text-to-audio exploration. Provide divergent musical concepts covering distinct genres, rhythms, instrumentations, and emotional palettes derived from the theme.',
-    expandJa: 'テキスト音声の水平展開。テーマを元にジャンル・リズム・編成・感情表現を変えた複数の楽曲案を提案する。'
-  })],
-  ['t2s', buildGuidanceModes({
-    enhanceEn: 'Text-to-singing/expressive speech enhancement. Specify character identity, emotional tone, articulation, rhythm, accent, dynamics, and performance nuances.',
-    enhanceJa: '歌声・音声合成を強化。キャラクター性、感情、発音スタイル、リズム、アクセント、ダイナミクス、ニュアンスを詳細に記述する。',
-    expandEn: 'Text-to-singing exploration. Imagine distinct vocal interpretations—different personas, emotions, delivery styles, and production treatments—for comparative options.',
-    expandJa: '歌声・音声の水平展開。人物像や感情、発声スタイル、音響処理を変えた複数のボーカル案を生成する。'
-  })],
-  ['tts', buildGuidanceModes({
-    enhanceEn: 'Text-to-speech enhancement. Describe precise voice timbre, speed, intonation contour, emotional cues, enunciation, and pacing adjustments.',
-    enhanceJa: '音声読み上げを強化。声質、スピード、イントネーション、感情表現、発音、間の取り方を具体的に定義する。',
-    expandEn: 'Text-to-speech exploration. Offer contrasting voice personas—different timbres, energy levels, accents, and speaking styles—suited to the goal.',
-    expandJa: '音声読み上げの水平展開。目的に合わせ、声質・エネルギー・アクセント・話し方の異なる複数のナレーション案を提示する。'
-  })],
-  ['t2m', buildGuidanceModes({
-    enhanceEn: 'Text-to-music or SFX enhancement. Outline structure, tempo, instrumentation, texture, mood, and sonic embellishments with production notes.',
-    enhanceJa: '音楽/効果音を強化。構成、テンポ、使用音源、質感、ムード、音響処理や装飾を詳細に書き込む。',
-    expandEn: 'Text-to-music exploration. Generate varied sound concepts—alternate tempos, instrument sets, rhythmic patterns, and emotional arcs for the scenario.',
-    expandJa: '音楽/効果音の水平展開。テンポや編成、リズム、感情曲線を変えた複数のサウンド案を提案する。'
-  })],
-  ['v2a', buildGuidanceModes({
-    enhanceEn: 'Video-to-audio enhancement. Detail ambience, foley, musical cues, timing, layering, and spatial design synced to visual transitions.',
-    enhanceJa: '映像から音を強化。環境音、フォーリー、音楽キュー、タイミング、レイヤー構成、空間演出を映像の変化と同期させて指示する。',
-    expandEn: 'Video-to-audio exploration. Suggest alternate soundtracks—changing mood, instrumentation, spatial depth, and pacing—to reinterpret the same visuals.',
-    expandJa: '映像音声の水平展開。同じ映像に異なるムードや編成、空間感、テンポを持たせたサウンドデザイン案を複数提示する。'
-  })],
-  ['v2sfx', buildGuidanceModes({
-    enhanceEn: 'Video sound-effects enhancement. Enumerate actions needing sound, specify texture, distance, reverb, layering, and mix balance precisely.',
-    enhanceJa: '映像効果音を強化。効果音が必要なアクションを洗い出し、質感・距離感・残響・レイヤー構成・ミックスのバランスを詳細に示す。',
-    expandEn: 'Video sound-effects exploration. Provide creative alternates—stylised, realistic, exaggerated, or minimal treatments—for the same sequence.',
-    expandJa: '映像効果音の水平展開。同じシーンに対し、写実的・誇張・スタイライズなど異なる演出方針の効果音案を提案する。'
-  })],
-  ['t2visual', buildGuidanceModes({
-    enhanceEn: 'Text-to-visual-document enhancement. Define purpose, layout, hierarchy, colour system, annotation depth, typography, and export requirements.',
-    enhanceJa: 'ビジュアル資料を強化。目的、レイアウト、情報階層、配色、注釈レベル、タイポグラフィ、書き出し仕様を明文化する。',
-    expandEn: 'Text-to-visual-document exploration. Suggest multiple presentation angles—different structures, story flows, visual metaphors, and palette systems.',
-    expandJa: 'ビジュアル資料の水平展開。構成やストーリー展開、ビジュアルメタファー、配色体系を変えた複数の案を提案する。'
-  })],
-  ['misc', buildGuidanceModes({
-    enhanceEn: 'Other modalities enhancement. Clarify objectives, target style, constraints, expected output format, and measurable success criteria.',
-    enhanceJa: 'その他用途の強化。目的、スタイル、制約、期待する出力形式、成功指標を明確に記述する。',
-    expandEn: 'Other modalities exploration. Produce alternative takes that reinterpret the goal with different styles, audiences, or delivery formats.',
-    expandJa: 'その他用途の水平展開。スタイルやターゲット、提供形式を変えて複数の方向性を打ち出す。'
-  })],
-  ['train', buildGuidanceModes({
-    enhanceEn: 'Training/fine-tuning enhancement. Summarise objectives, data traits, attributes to emphasise, evaluation metrics, risks, and constraints.',
-    enhanceJa: '学習・ファインチューニングの強化。目的、データ特性、重視する属性、評価指標、リスク、制約を整理する。',
-    expandEn: 'Training/fine-tuning exploration. Suggest varied dataset focuses, augmentation ideas, and evaluation strategies to approach the goal differently.',
-    expandJa: '学習・ファインチューニングの水平展開。データ強調点や拡張案、評価戦略を変えた複数アプローチを提示する。'
-  })],
-  ['file', buildGuidanceModes({
-    enhanceEn: 'File utility enhancement. Document input/output formats, quality requirements, edge cases, validation steps, and safety considerations.',
-    enhanceJa: 'ファイル/ユーティリティ処理を強化。入出力仕様、品質要件、例外ケース、検証手順、安全面の注意をまとめる。',
-    expandEn: 'File utility exploration. Offer different workflows or automation ideas addressing the same task from multiple technical angles.',
-    expandJa: 'ファイル/ユーティリティ処理の水平展開。同じ課題に対し、異なるワークフローや自動化パターンを提案する。'
-  })]
-]);
-
-const PROMPT_GENERATOR_GUIDANCE_BY_CATEGORY = new Map([
-  ['image', buildGuidanceModes({
-    enhanceEn: 'Image generation enhancement. Describe subjects, composition, materials, colour palette, lighting, and lens/render settings in clear English; keep directives affirmative.',
-    enhanceJa: '画像生成の強化。被写体、構図、質感、配色、光源、レンズ/レンダー条件を英語で明確に指示し、肯定的な表現でまとめる。',
-    expandEn: 'Image generation exploration. Provide alternative visual directions varying in genre, medium, atmosphere, camera language, and lighting concepts.',
-    expandJa: '画像生成の水平展開。ジャンルや画材、空気感、カメラ表現、ライティング発想を変えた別方向の案を作る。'
-  })],
-  ['video', buildGuidanceModes({
-    enhanceEn: 'Video generation enhancement. Detail multi-cut structure, camera work, motion style, timing, lighting, and stylistic goals.',
-    enhanceJa: '映像生成の強化。カット構成、カメラワーク、モーション、タイミング、照明、スタイルを具体化する。',
-    expandEn: 'Video generation exploration. Suggest contrasted story flows, cinematic genres, motion energies, and editing rhythms for the concept.',
-    expandJa: '映像生成の水平展開。ストーリーの流れや映画ジャンル、動きの熱量、編集リズムを変えた代替案を出す。'
-  })],
-  ['sound', buildGuidanceModes({
-    enhanceEn: 'Sound generation enhancement. Specify tempo, groove, genre, instrumentation, mood, layer mix, and audio processing details.',
-    enhanceJa: 'サウンド生成の強化。テンポ、グルーヴ、ジャンル、編成、ムード、レイヤー構成、音響処理を明確化する。',
-    expandEn: 'Sound generation exploration. Offer different sonic directions—genres, rhythms, textures, and emotional arcs—for the same brief.',
-    expandJa: 'サウンド生成の水平展開。同じ要件を様々なジャンル・リズム・質感・感情曲線で表現する案を提示する。'
-  })],
-  ['3d', buildGuidanceModes({
-    enhanceEn: '3D asset enhancement. Define geometry, scale, materials, detail level, intended use, and lighting conditions.',
-    enhanceJa: '3Dアセットの強化。形状、スケール、マテリアル、ディテール密度、用途、照明条件を詳細に記す。',
-    expandEn: '3D asset exploration. Present alternative forms, proportions, materials, and lighting rigs that reinterpret the concept.',
-    expandJa: '3Dアセットの水平展開。形状やプロポーション、質感、ライトセットを変えた多彩な案を提供する。'
-  })],
-  ['other', buildGuidanceModes({
-    enhanceEn: 'Other modalities enhancement. Clarify purpose, desired style, constraints, output format, and evaluation criteria.',
-    enhanceJa: 'その他の成果物を強化。目的、スタイル、制約、出力形式、評価指標を明確化する。',
-    expandEn: 'Other modalities exploration. Devise alternative routes that reposition the goal for different audiences, styles, or delivery media.',
-    expandJa: 'その他の成果物を水平展開。ターゲットやスタイル、提供メディアを変えた別案を企画する。'
-  })]
-]);
-
-const PROMPT_GENERATOR_VARIANT_OPTIONS = Array.from({ length: PROMPT_GENERATOR_MAX_SUGGESTIONS }, (_, index) => index + 1);
-const PROMPT_GENERATOR_FLOAT_MARGIN = 16;
-const PROMPT_GENERATOR_FLOAT_OFFSET = 12;
-
-const PROMPT_GENERATOR_TYPE_CATEGORY_MAP = (() => {
-  const map = new Map();
-  PROMPT_GENERATOR_TYPE_OPTIONS.forEach((option) => {
-    map.set(option.id, option.category);
-  });
-  map.set('other', 'other');
-  return map;
-})();
-
 function normalizeGuidancePack(entry, { mode = PROMPT_GENERATOR_DEFAULT_MODE } = {}) {
   if (!entry) return null;
   if (typeof entry === 'string') {
@@ -539,75 +377,6 @@ function getDefaultPromptGeneratorGuidancePack(type, category, mode = PROMPT_GEN
     en: 'Provide detailed instructions about the goal, preferred style, constraints, and desired outputs.',
     ja: '生成したい内容の目的、スタイル、制約、期待する出力を具体的に記述してください。'
   };
-}
-
-const MEDIA_PARAM_KEYWORDS = {
-  image: new Set([
-    'image', 'images', 'img', 'picture', 'photo', 'thumbnail', 'thumb',
-    'reference_image', 'input_image', 'init_image', 'mask', 'background', 'texture', 'screenshot'
-  ]),
-  video: new Set([
-    'video', 'videos', 'clip', 'clips', 'movie', 'movies', 'animation', 'footage', 'sequence', 'trailer', 'replay'
-  ]),
-  sound: new Set([
-    'audio', 'audios', 'sound', 'sounds', 'voice', 'voices', 'speech', 'music', 'sfx', 'fx', 'track', 'tracks', 'song', 'songs', 'vocals'
-  ])
-};
-
-const MEDIA_PARAM_STRONG_TOKENS = {
-  image: new Set(['mask', 'masks', 'background', 'texture', 'screenshot', 'thumbnail', 'thumb', 'reference', 'sprite', 'input', 'init']),
-  video: new Set(['clip', 'clips', 'movie', 'movies', 'animation', 'footage', 'sequence', 'trailer', 'replay']),
-  sound: new Set(['track', 'tracks', 'song', 'songs', 'audio', 'sound', 'voice', 'voices', 'music']),
-  '3d': new Set(['mesh', 'meshes', 'model', 'models', 'geometry', 'pointcloud'])
-};
-
-const MEDIA_PARAM_SIZE_TOKENS = new Set([
-  'size', 'sizes', 'resolution', 'resolutions', 'dimension', 'dimensions', 'width', 'height'
-]);
-
-const MEDIA_PARAM_EXCLUDE_TOKENS = new Set([
-  'prompt', 'prompts', 'caption', 'captions', 'text', 'texts', 'script', 'scripts',
-  'language', 'languages', 'output', 'outputs', 'style', 'styles', 'quality', 'qualities',
-  'mode', 'modes', 'speed', 'speeds', 'name', 'names', 'title', 'titles', 'temperature', 'temperatures'
-]);
-
-const MEDIA_PARAM_CONFIG_TOKENS = new Set([
-  'format', 'formats', 'option', 'options', 'choice', 'choices', 'preset', 'presets',
-  'variant', 'variants', 'setting', 'settings', 'config', 'configs'
-]);
-
-function detectPreviewable3dExtension(entry) {
-  if (!entry) return '';
-  const candidates = [];
-  if (typeof entry === 'string') {
-    candidates.push(entry);
-  } else if (typeof entry === 'object') {
-    if (entry.fileName) candidates.push(entry.fileName);
-    if (entry.filename) candidates.push(entry.filename);
-    if (entry.path) candidates.push(entry.path);
-    if (entry.url) candidates.push(entry.url);
-    if (entry.imageUrl) candidates.push(entry.imageUrl);
-    if (entry.webPath) candidates.push(entry.webPath);
-  }
-  for (const candidate of candidates) {
-    const ext = extractFileExtension(candidate);
-    if (ext && PREVIEWABLE_3D_EXTENSIONS.has(ext)) {
-      return ext;
-    }
-  }
-  return '';
-}
-
-function isPreviewable3dEntry(entry) {
-  if (!entry) return false;
-  if (entry.filterType && entry.filterType !== '3d') {
-    // filterType is authoritative when populated
-    if (entry.filterType === 'other') {
-      return Boolean(detectPreviewable3dExtension(entry));
-    }
-    return false;
-  }
-  return Boolean(detectPreviewable3dExtension(entry));
 }
 
 function resolveHistory3dThumbnail(entry, result) {
@@ -656,173 +425,45 @@ function resolveHistory3dThumbnail(entry, result) {
   return candidates[0] || '';
 }
 
-function ensureModelViewerReady() {
-  if (typeof window === 'undefined') return Promise.resolve(false);
-  if (window.customElements && window.customElements.get('model-viewer')) {
-    return Promise.resolve(true);
-  }
-  if (modelViewerLoadPromise) {
-    return modelViewerLoadPromise;
-  }
-  const existing = document.querySelector(`script[${MODEL_VIEWER_SCRIPT_ATTR}]`);
-  if (existing) {
-    modelViewerLoadPromise = new Promise((resolve) => {
-      if (existing.dataset.loaded === 'true') {
-        resolve(Boolean(window.customElements?.get('model-viewer')));
-        return;
-      }
-      existing.addEventListener('load', () => {
-        existing.dataset.loaded = 'true';
-        resolve(Boolean(window.customElements?.get('model-viewer')));
-      }, { once: true });
-      existing.addEventListener('error', () => {
-        resolve(false);
-      }, { once: true });
-    });
-    return modelViewerLoadPromise;
-  }
-  modelViewerLoadPromise = new Promise((resolve) => {
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.src = MODEL_VIEWER_MODULE_URL;
-    script.crossOrigin = 'anonymous';
-    script.setAttribute(MODEL_VIEWER_SCRIPT_ATTR, 'true');
-    script.addEventListener('load', () => {
-      script.dataset.loaded = 'true';
-      resolve(Boolean(window.customElements?.get('model-viewer')));
-    }, { once: true });
-    script.addEventListener('error', (err) => {
-      console.error('[Showcase] model-viewer script load failed', err);
-      resolve(false);
-    }, { once: true });
-    document.head.appendChild(script);
-  });
-  return modelViewerLoadPromise;
-}
 
-function createModelViewerElement(src, { alt = '3D preview', variant = 'card' } = {}) {
-  const viewer = document.createElement('model-viewer');
-  viewer.src = src;
-  viewer.alt = alt || '3D preview';
-  viewer.setAttribute('shadow-intensity', '0.6');
-  viewer.setAttribute('camera-controls', '');
-  viewer.setAttribute('auto-rotate', '');
-  viewer.setAttribute('interaction-prompt', 'none');
-  viewer.setAttribute('touch-action', 'none');
-  viewer.setAttribute('exposure', '1');
-  if (variant === 'card') {
-    viewer.className = 'kc-result-card__model';
-    viewer.setAttribute('disable-zoom', '');
-  } else if (variant === 'lightbox') {
-    viewer.className = 'kc-lightbox__model';
-    viewer.removeAttribute('disable-zoom');
-  } else if (variant === 'history') {
-    viewer.className = 'kc-history-card__model';
-    viewer.setAttribute('disable-zoom', '');
-  } else if (variant === 'input') {
-    viewer.className = 'irs-source-card__model';
-    viewer.setAttribute('disable-zoom', '');
-  } else if (variant === 'modal') {
-    viewer.className = 'kc-results-modal__model';
-  }
-  return viewer;
-}
-
-function render3dDownloadMessage(container, url, variant = 'card') {
-  const message = document.createElement('div');
-  let className = 'kc-result-card__placeholder';
-  if (variant === 'history') {
-    className = 'kc-history-card__placeholder';
-  } else if (variant === 'lightbox') {
-    className = 'kc-lightbox__message';
-  } else if (variant === 'modal') {
-    className = 'kc-result-card__placeholder';
-  } else if (variant === 'input') {
-    className = 'irs-source-card__placeholder';
-  }
-  message.className = `${className} kc-placeholder--3d-download`;
-  const line = document.createElement('span');
-  line.textContent = '3Dプレビューに未対応のファイルです。';
-  const br = document.createElement('br');
-  const link = document.createElement('a');
-  link.href = url;
-  link.textContent = 'ダウンロード';
-  link.setAttribute('download', '');
-  message.innerHTML = '';
-  message.append(line, br, link, document.createTextNode(' してご確認ください。'));
-  container.classList.add('is-3d');
-  container.classList.remove('kc-3d-host');
-  container.innerHTML = '';
-  container.append(message);
-}
-
-function mount3dPreview(container, { src, alt, variant = 'card' } = {}) {
-  if (!container || !src) return;
-  container.classList.add('is-3d', 'kc-3d-host');
-  container.innerHTML = '';
-  const placeholder = document.createElement('div');
-  if (variant === 'history') {
-    placeholder.className = 'kc-history-card__placeholder';
-  } else if (variant === 'lightbox') {
-    placeholder.className = 'kc-lightbox__message';
-  } else if (variant === 'modal') {
-    placeholder.className = 'kc-result-card__placeholder';
-  } else if (variant === 'input') {
-    placeholder.className = 'irs-source-card__placeholder';
-  } else {
-    placeholder.className = 'kc-result-card__placeholder';
-  }
-  placeholder.textContent = '3Dプレビューを読み込み中...';
-  container.append(placeholder);
-  ensureModelViewerReady().then((ready) => {
-    if (!container.isConnected) return;
-    if (!ready) {
-      render3dDownloadMessage(container, src, variant);
-      return;
-    }
-    const viewer = createModelViewerElement(src, { alt, variant });
-    viewer.classList.add('kc-model-viewer');
-    viewer.style.width = '100%';
-    viewer.style.height = '100%';
-    viewer.style.minWidth = '0';
-    viewer.style.minHeight = '0';
-    const dismissPoster = () => {
-      if (typeof viewer.dismissPoster === 'function') {
-        try {
-          viewer.dismissPoster();
-        } catch (err) {
-          // ignore poster dismissal failures
-        }
-      }
-    };
-    const markReady = () => {
-      viewer.classList.add('is-ready');
-      dismissPoster();
-    };
-    viewer.addEventListener('load', markReady, { once: true });
-    viewer.addEventListener('model-visibility', (event) => {
-      if (event?.detail?.visible) {
-        markReady();
-      }
-    });
-    viewer.addEventListener('error', () => {
-      viewer.classList.remove('is-ready');
-    });
-    container.innerHTML = '';
-    container.append(viewer);
-    requestAnimationFrame(() => {
-      dismissPoster();
-    });
-  }).catch((err) => {
-    console.error('[Showcase] model-viewer init error', err);
-    if (!container.isConnected) return;
-    render3dDownloadMessage(container, src, variant);
-  });
-}
-
-const DOC_URL_OVERRIDES = Object.freeze({});
+const SORA_ENGINE_ID = 't2v-kamui-openai-sora';
+const SORA_DEFAULT_SIZE = '1280x720';
+const SORA_DEFAULT_SECONDS = '8';
+const SORA_MODEL_OPTIONS = ['sora-2', 'sora-2-pro'];
+const SORA_SIZE_OPTIONS = ['1280x720', '720x1280', '1792x1024', '1024x1792'];
+const SORA_PRO_ONLY_SIZES = new Set(['1792x1024', '1024x1792']);
+const SORA_SECONDS_OPTIONS = ['4', '8', '12'];
 
 const ENGINE_PARAMETER_OPTION_HINTS = Object.freeze({
+  [SORA_ENGINE_ID]: {
+    model: {
+      replace: true,
+      options: [
+        { value: 'sora-2', label: 'Sora 2 (Fast / Flexible)' },
+        { value: 'sora-2-pro', label: 'Sora 2 Pro (Production)' }
+      ],
+      default: 'sora-2'
+    },
+    size: {
+      replace: true,
+      options: [
+        { value: '1280x720', label: '1280x720 (横長)' },
+        { value: '720x1280', label: '720x1280 (縦長)' },
+        { value: '1792x1024', label: '1792x1024 (横長・Pro専用)' },
+        { value: '1024x1792', label: '1024x1792 (縦長・Pro専用)' }
+      ],
+      default: SORA_DEFAULT_SIZE
+    },
+    seconds: {
+      replace: true,
+      options: [
+        { value: '4', label: '4 秒' },
+        { value: '8', label: '8 秒' },
+        { value: '12', label: '12 秒' }
+      ],
+      default: SORA_DEFAULT_SECONDS
+    }
+  },
   't2v-kamui-kling-video-v25-turbo-pro': {
     duration: {
       options: [
@@ -857,616 +498,6 @@ const ENGINE_PARAMETER_OPTION_HINTS = Object.freeze({
   }
 });
 
-const ENGINE_PARAMETER_REQUIRED_HINTS = Object.freeze({
-  'v2v-kamui-hunyuan-video-foley': ['text_prompt']
-});
-
-const ENGINE_PARAMETER_OPTION_SUPPRESS = Object.freeze({
-  'v2v-kamui-hunyuan-video-foley': new Set(['text_prompt'])
-});
-
-const DOC_METADATA_ENDPOINT = '/data/kamui-code/doc-metadata.json';
-
-const MEDIA_PARAM_ID_TOKENS = new Set(['id', 'ids', 'identifier', 'identifiers']);
-
-const MEDIA_PARAM_INDICATOR_TOKENS = new Set([
-  'url', 'urls', 'uri', 'uris', 'href', 'hrefs', 'path', 'paths', 'file', 'files',
-  'filename', 'filenames', 'asset', 'assets', 'source', 'sources', 'clip', 'clips',
-  'track', 'tracks', 'thumbnail', 'thumbnails', 'thumb', 'thumbs',
-  'mask', 'masks', 'base64', 'data', 'payload', 'attachment', 'attachments',
-  '3d', 'mesh', 'meshes'
-]);
-
-const MEDIA_PARAM_LOCATOR_TOKENS = new Set([
-  'url', 'urls', 'uri', 'uris', 'href', 'hrefs', 'path', 'paths'
-]);
-
-const MEDIA_PARAM_BADGE_EXCLUDE_TOKENS = new Set([
-  'prompt', 'prompts', 'caption', 'captions', 'text', 'texts', 'language', 'languages',
-  'output', 'outputs', 'script', 'scripts', 'subtitle', 'subtitles', 'transcript', 'transcripts',
-  'default', 'defaults', 'title', 'titles', 'name', 'names', 'description', 'descriptions',
-  'tone', 'tones', 'style', 'styles'
-]);
-
-const MEDIA_TYPE_DISPLAY = {
-  image: { label: 'IMAGE' },
-  video: { label: 'VIDEO' },
-  sound: { label: 'SOUND' },
-  '3d': { label: '3D' },
-  other: { label: 'OTHER' }
-};
-
-const MEDIA_SLOT_START_TOKENS = Object.freeze([
-  'start',
-  'first',
-  'initial',
-  'begin',
-  'source',
-  'input',
-  'intro',
-  'init'
-]);
-
-const MEDIA_SLOT_END_TOKENS = Object.freeze([
-  'end',
-  'ending',
-  'last',
-  'final',
-  'target',
-  'destination',
-  'dest',
-  'output',
-  'outro'
-]);
-
-function normalizeMediaGroupType(rawType) {
-  if (!rawType && rawType !== 0) return 'other';
-  const value = String(rawType).trim().toLowerCase();
-  if (!value) return 'other';
-  if (value === 'audio') return 'sound';
-  if (MEDIA_TYPE_DISPLAY[value]) return value;
-  return 'other';
-}
-
-function tokenizeKey(key) {
-  if (!key && key !== 0) return [];
-  return String(key)
-    .toLowerCase()
-    .split(/[^a-z0-9]+/g)
-    .filter(Boolean);
-}
-
-function inferMediaTypeFromParameter(key, schema = {}) {
-  if (!key) return '';
-  const tokens = tokenizeKey(key);
-  if (!tokens.length) return '';
-
-  const tokenSet = new Set(tokens);
-  if (tokens.some((token) => MEDIA_PARAM_SIZE_TOKENS.has(token))) {
-    return '';
-  }
-  const hasExcludedToken = tokens.some((token) => MEDIA_PARAM_EXCLUDE_TOKENS.has(token));
-  const hasIndicatorToken = tokens.some((token) => MEDIA_PARAM_INDICATOR_TOKENS.has(token));
-  const hasIdOnly = tokens.some((token) => MEDIA_PARAM_ID_TOKENS.has(token)) && !hasIndicatorToken;
-
-  if (hasIdOnly) {
-    return '';
-  }
-
-  if ((tokenSet.has('prompt') || tokenSet.has('prompts') || tokenSet.has('caption') || tokenSet.has('captions')
-    || tokenSet.has('language') || tokenSet.has('languages') || tokenSet.has('output') || tokenSet.has('outputs'))
-    && !hasIndicatorToken) {
-    return '';
-  }
-
-  const cleanedTokens = tokens.filter((token) => !MEDIA_PARAM_EXCLUDE_TOKENS.has(token));
-  const cleanedSet = new Set(cleanedTokens);
-
-  const directMatch = (type) => {
-    const keywords = MEDIA_PARAM_KEYWORDS[type];
-    if (!keywords) return false;
-    return cleanedTokens.some((token) => keywords.has(token));
-  };
-
-  const matchesSound = directMatch('sound');
-  const matchesVideo = directMatch('video');
-  const matchesImage = directMatch('image');
-  const hasConfigToken = tokens.some((token) => MEDIA_PARAM_CONFIG_TOKENS.has(token));
-  const hasLocatorToken = tokens.some((token) => MEDIA_PARAM_LOCATOR_TOKENS.has(token));
-
-  const has3dGeometryTokens = cleanedSet.has('3d') || cleanedSet.has('mesh') || cleanedSet.has('meshes');
-  const hasModelGeometryTokens = cleanedSet.has('model') || cleanedSet.has('models') || cleanedSet.has('geometry');
-  let inferred = '';
-  let inferredByGeometry = false;
-  if (matchesSound) {
-    const hasSoundIndicator = tokenSet.has('audio') || tokenSet.has('sound') || tokenSet.has('music')
-      || tokenSet.has('track') || tokenSet.has('tracks') || tokenSet.has('clip') || tokenSet.has('clips')
-      || tokenSet.has('sample') || tokenSet.has('samples') || tokenSet.has('url') || tokenSet.has('file');
-    inferred = hasSoundIndicator ? 'sound' : '';
-  } else if (matchesVideo) {
-    inferred = 'video';
-  } else if (matchesImage) {
-    inferred = 'image';
-  } else if (has3dGeometryTokens || (hasModelGeometryTokens && hasIndicatorToken)) {
-    inferred = '3d';
-    inferredByGeometry = true;
-  }
-
-  const descriptorText = [
-    String(schema.title || ''),
-    String(schema.description || ''),
-    String(schema.contentMediaType || ''),
-    String(schema.format || '')
-  ]
-    .map((chunk) => chunk.toLowerCase())
-    .join(' ');
-
-  const pickFromDescriptor = (value) => {
-    if (!value) return '';
-    if (value.includes('video/')) return 'video';
-    if (value.includes('image/')) return 'image';
-    if (value.includes('audio/') || value.includes('sound/')) return 'sound';
-    if (value.includes('model') || value.includes('mesh') || value.includes('3d')) return '3d';
-    return '';
-  };
-
-  const contentType = String(schema.contentMediaType || schema.mediaType || '').toLowerCase();
-  const format = String(schema.format || '').toLowerCase();
-
-  const descriptorCandidate = pickFromDescriptor(contentType)
-    || (format.includes('video') ? 'video' : '')
-    || (format.includes('image') ? 'image' : '')
-    || ((format.includes('audio') || format.includes('sound')) ? 'sound' : '')
-    || ((format.includes('model') || format.includes('mesh') || format.includes('3d')) ? '3d' : '');
-
-  const descriptorHasAssetCore = /(url|uri|href|path|upload|source|clip|clips|track|tracks|asset|base64|data|payload|attachment)/.test(descriptorText);
-  const descriptorMentionsFile = descriptorText.includes('file');
-  const descriptorImpliesUpload = /(upload|provide|supply|input)/.test(descriptorText);
-  const descriptorHasAssetToken = descriptorHasAssetCore || (descriptorMentionsFile && descriptorImpliesUpload);
-  const schemaImpliesLocator = Boolean(format && (format.includes('uri') || format.includes('url')));
-  const schemaImplies3dAsset = Boolean(contentType && /(model|mesh|3d)/.test(contentType));
-  const descriptorSupportsAsset = descriptorHasAssetToken || schemaImpliesLocator || schemaImplies3dAsset;
-
-  if (!inferred) {
-    inferred = descriptorCandidate;
-  }
-
-  if (inferred === 'sound' && !hasIndicatorToken) {
-    const hasSoundDescriptor = /audio|sound|music|track/.test(descriptorText) || format.includes('audio') || format.includes('sound');
-    const hasSoundToken = tokenSet.has('audio') || tokenSet.has('sound') || tokenSet.has('music')
-      || tokenSet.has('track') || tokenSet.has('tracks') || tokenSet.has('clip') || tokenSet.has('clips');
-    if (!hasSoundDescriptor && !hasSoundToken) {
-      inferred = '';
-    }
-  }
-
-  if (inferred && !hasIndicatorToken) {
-    const strongTokens = MEDIA_PARAM_STRONG_TOKENS[inferred] || new Set();
-    const hasStrongToken = cleanedTokens.some((token) => strongTokens.has(token));
-    const descriptorImpliesAsset = descriptorSupportsAsset || descriptorCandidate === inferred;
-    if (!hasStrongToken && !descriptorImpliesAsset) {
-      inferred = '';
-    }
-  }
-
-  if (inferred && hasExcludedToken && !hasIndicatorToken && (tokenSet.has('prompt') || tokenSet.has('caption'))) {
-    inferred = '';
-  }
-
-  if (!inferred && hasIndicatorToken) {
-    const matchByDescription = (type) => {
-      const keywords = MEDIA_PARAM_KEYWORDS[type];
-      if (!keywords) return false;
-      return Array.from(keywords).some((keyword) => descriptorText.includes(keyword));
-    };
-    if (matchByDescription('video')) {
-      inferred = 'video';
-    } else if (matchByDescription('image')) {
-      inferred = 'image';
-    } else if (matchByDescription('sound')) {
-      inferred = 'sound';
-    } else if ((descriptorText.includes('model') || descriptorText.includes('mesh') || descriptorText.includes('3d'))
-      && (hasLocatorToken || descriptorSupportsAsset || !hasConfigToken)) {
-      inferred = '3d';
-      inferredByGeometry = true;
-    }
-  }
-
-  if (inferredByGeometry) {
-    const hasAssetEvidence = hasLocatorToken || descriptorSupportsAsset || descriptorCandidate === '3d';
-    if (!hasAssetEvidence || (hasConfigToken && !descriptorSupportsAsset && descriptorCandidate !== '3d')) {
-      inferred = '';
-    }
-  }
-
-  if (!inferred) return '';
-  if (!MEDIA_INPUT_ALLOWED_TYPES.has(inferred)) return 'other';
-  return inferred;
-}
-
-function detectPromptKeyFromProperties(properties) {
-  if (!properties || typeof properties !== 'object') return '';
-  if (Object.prototype.hasOwnProperty.call(properties, 'prompt')) {
-    return 'prompt';
-  }
-
-  const keys = Object.keys(properties);
-  for (const key of keys) {
-    if (!key && key !== 0) continue;
-    if (String(key).toLowerCase() === 'prompt') {
-      return key;
-    }
-  }
-
-  let bestCandidate = '';
-  let bestScore = Number.POSITIVE_INFINITY;
-  keys.forEach((key) => {
-    if (!key && key !== 0) return;
-    const tokens = tokenizeKey(key);
-    if (!tokens.includes('prompt')) return;
-    if (tokens.some((token) => PROMPT_KEY_EXCLUDE_TOKENS.has(token))) return;
-    const score = tokens.length;
-    if (score < bestScore) {
-      bestCandidate = key;
-      bestScore = score;
-    }
-  });
-
-  return bestCandidate;
-}
-
-function analyzeEngineParameters(meta) {
-  const result = {
-    mediaParams: {
-      image: [],
-      video: [],
-      sound: [],
-      other: []
-    },
-    soundTextKeys: [],
-    requiredSoundTextKeys: [],
-    requiredMediaTypes: new Set(),
-    promptKey: '',
-    requiresPrompt: false,
-    requiresSoundText: false
-  };
-
-  const submitParams = meta?.tools?.submit?.parameters;
-  const props = submitParams?.properties || {};
-  const requiredKeys = Array.isArray(submitParams?.required)
-    ? new Set(submitParams.required.map((key) => String(key)))
-    : new Set();
-
-  const manualRequired = ENGINE_PARAMETER_REQUIRED_HINTS[meta?.id];
-  if (Array.isArray(manualRequired)) {
-    manualRequired.forEach((key) => {
-      if (key || key === 0) {
-        requiredKeys.add(String(key));
-      }
-    });
-  }
-
-  const soundKeys = new Set();
-  const requiredSoundKeys = new Set();
-  if (Array.isArray(meta?.soundTextKeys)) {
-    meta.soundTextKeys.forEach((key) => {
-      if (key || key === 0) {
-        soundKeys.add(key);
-      }
-    });
-  }
-  if (Array.isArray(meta?.requiredSoundTextKeys)) {
-    meta.requiredSoundTextKeys.forEach((key) => {
-      if (key || key === 0) {
-        soundKeys.add(key);
-        requiredSoundKeys.add(key);
-      }
-    });
-  }
-  const promptKey = detectPromptKeyFromProperties(props);
-  if (promptKey) {
-    result.promptKey = promptKey;
-    const lowerPromptKey = promptKey.toLowerCase();
-    if (Array.isArray(submitParams?.required)) {
-      const requires = submitParams.required.some(
-        (key) => String(key).toLowerCase() === lowerPromptKey
-      );
-      if (requires) {
-        result.requiresPrompt = true;
-      }
-    }
-    if (!result.requiresPrompt && Array.isArray(manualRequired)) {
-      const matchesManual = manualRequired.some(
-        (key) => String(key).toLowerCase() === lowerPromptKey
-      );
-      if (matchesManual) {
-        result.requiresPrompt = true;
-      }
-    }
-    if (!result.requiresPrompt) {
-      const promptSchema = props?.[promptKey];
-      if (promptSchema && typeof promptSchema === 'object') {
-        if (typeof promptSchema.minLength === 'number' && promptSchema.minLength > 0) {
-          result.requiresPrompt = true;
-        } else if (typeof promptSchema.minItems === 'number' && promptSchema.minItems > 0) {
-          result.requiresPrompt = true;
-        } else if (promptSchema.required === true) {
-          result.requiresPrompt = true;
-        }
-      }
-    }
-  }
-
-  Object.entries(props).forEach(([key, schema]) => {
-    if (promptKey && key === promptKey) {
-      return;
-    }
-    const normalizedKey = String(key).toLowerCase();
-    if (SOUND_TEXT_PARAM_KEYS.has(normalizedKey)) {
-      soundKeys.add(key);
-      const schemaObject = schema && typeof schema === 'object' ? schema : null;
-      let isRequired = requiredKeys.has(key);
-      if (!isRequired && schemaObject) {
-        if (schemaObject.required === true) {
-          isRequired = true;
-        } else if (typeof schemaObject.minLength === 'number' && schemaObject.minLength > 0) {
-          isRequired = true;
-        } else if (typeof schemaObject.minItems === 'number' && schemaObject.minItems > 0) {
-          isRequired = true;
-        }
-      }
-      if (isRequired) {
-        requiredSoundKeys.add(key);
-      }
-      return;
-    }
-
-    const inferredType = inferMediaTypeFromParameter(key, schema);
-    if (inferredType) {
-      const typeKey = normalizeMediaGroupType(inferredType);
-      if (!result.mediaParams[typeKey]) {
-        result.mediaParams[typeKey] = [];
-      }
-      const info = {
-        key,
-        required: requiredKeys.has(key)
-      };
-      result.mediaParams[typeKey].push(info);
-      if (info.required) {
-        result.requiredMediaTypes.add(typeKey);
-      }
-      return;
-    }
-
-    const fallbackTokens = tokenizeKey(key);
-    if (fallbackTokens.includes('file') && fallbackTokens.includes('url')) {
-      result.mediaParams.other.push({ key, required: requiredKeys.has(key) });
-    }
-  });
-
-  result.soundTextKeys = Array.from(soundKeys);
-  result.requiredSoundTextKeys = Array.from(requiredSoundKeys);
-  if (requiredSoundKeys.size > 0 || meta?.requiresSoundText === true) {
-    result.requiresSoundText = true;
-  }
-  return result;
-}
-
-function getPromptKey(meta) {
-  if (!meta) return '';
-  if (typeof meta.promptKey === 'string' && meta.promptKey) {
-    return meta.promptKey;
-  }
-  const props = meta?.tools?.submit?.parameters?.properties;
-  const detected = detectPromptKeyFromProperties(props);
-  if (detected && typeof meta === 'object') {
-    meta.promptKey = detected;
-  }
-  return detected || '';
-}
-
-function engineRequiresPrompt(meta) {
-  if (!meta) return false;
-  if (meta.requiresPrompt === true) {
-    return true;
-  }
-  const submitParams = meta?.tools?.submit?.parameters;
-  if (!submitParams) {
-    return Boolean(meta?.requiresPrompt);
-  }
-  const promptKey = getPromptKey(meta);
-  if (!promptKey) {
-    return Boolean(meta?.requiresPrompt);
-  }
-  const lowerPromptKey = String(promptKey).toLowerCase();
-  const manualRequired = ENGINE_PARAMETER_REQUIRED_HINTS[meta?.id];
-  if (Array.isArray(submitParams.required)) {
-    const requires = submitParams.required.some((key) => String(key).toLowerCase() === lowerPromptKey);
-    if (requires) {
-      meta.requiresPrompt = true;
-      return true;
-    }
-  }
-  if (Array.isArray(manualRequired)) {
-    const matchesManual = manualRequired.some((key) => String(key).toLowerCase() === lowerPromptKey);
-    if (matchesManual) {
-      meta.requiresPrompt = true;
-      return true;
-    }
-  }
-  const schema = submitParams.properties?.[promptKey];
-  if (schema && typeof schema === 'object') {
-    if (typeof schema.minLength === 'number' && schema.minLength > 0) {
-      meta.requiresPrompt = true;
-      return true;
-    }
-    if (typeof schema.minItems === 'number' && schema.minItems > 0) {
-      meta.requiresPrompt = true;
-      return true;
-    }
-    if (schema.required === true) {
-      meta.requiresPrompt = true;
-      return true;
-    }
-  }
-  return Boolean(meta?.requiresPrompt);
-}
-
-function engineRequiresSoundText(meta, entry = null) {
-  const fallback = entry && typeof entry === 'object' ? entry : {};
-  const source = meta || fallback;
-  if (!source) return false;
-  if (source.requiresSoundText === true || fallback.requiresSoundText === true) {
-    return true;
-  }
-  if (source.requiresSoundText === false || fallback.requiresSoundText === false) {
-    return false;
-  }
-
-  const requiredSoundKeys = new Set();
-  if (Array.isArray(source.requiredSoundTextKeys)) {
-    source.requiredSoundTextKeys.forEach((key) => {
-      if (key || key === 0) {
-        requiredSoundKeys.add(String(key).toLowerCase());
-      }
-    });
-  }
-  if (Array.isArray(fallback.requiredSoundTextKeys)) {
-    fallback.requiredSoundTextKeys.forEach((key) => {
-      if (key || key === 0) {
-        requiredSoundKeys.add(String(key).toLowerCase());
-      }
-    });
-  }
-  if (requiredSoundKeys.size > 0) {
-    return true;
-  }
-
-  const collectSoundKeys = () => {
-    const keys = new Set();
-    const enqueue = (key) => {
-      if (key || key === 0) {
-        keys.add(String(key));
-      }
-    };
-    if (Array.isArray(source.soundTextKeys)) {
-      source.soundTextKeys.forEach(enqueue);
-    }
-    if (Array.isArray(fallback.soundTextKeys)) {
-      fallback.soundTextKeys.forEach(enqueue);
-    }
-    if (source.soundTextKey) enqueue(source.soundTextKey);
-    if (fallback.soundTextKey) enqueue(fallback.soundTextKey);
-    return Array.from(keys);
-  };
-
-  const soundKeys = collectSoundKeys();
-  if (!soundKeys.length) {
-    return false;
-  }
-
-  const submitParams = source?.tools?.submit?.parameters
-    || fallback?.tools?.submit?.parameters
-    || null;
-  const requiredSet = new Set();
-  if (Array.isArray(submitParams?.required)) {
-    submitParams.required.forEach((key) => {
-      if (key || key === 0) {
-        requiredSet.add(String(key).toLowerCase());
-      }
-    });
-  }
-  if (soundKeys.some((key) => requiredSet.has(String(key).toLowerCase()))) {
-    return true;
-  }
-
-  const properties = submitParams?.properties;
-  if (!properties || typeof properties !== 'object') {
-    return false;
-  }
-
-  const findSchemaForKey = (propKey) => {
-    if (Object.prototype.hasOwnProperty.call(properties, propKey)) {
-      return properties[propKey];
-    }
-    const lower = String(propKey).toLowerCase();
-    const entries = Object.entries(properties);
-    for (const [candidate, schema] of entries) {
-      if (String(candidate).toLowerCase() === lower) {
-        return schema;
-      }
-    }
-    return null;
-  };
-
-  for (const key of soundKeys) {
-    const schema = findSchemaForKey(key);
-    if (!schema || typeof schema !== 'object') {
-      continue;
-    }
-    if (schema.required === true) {
-      return true;
-    }
-    if (typeof schema.minLength === 'number' && schema.minLength > 0) {
-      return true;
-    }
-    if (typeof schema.minItems === 'number' && schema.minItems > 0) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function groupMediaEntriesByType(mediaList) {
-  const groups = new Map();
-  mediaList.forEach((entry) => {
-    const type = normalizeMediaGroupType(entry?.filterType || entry?.mediaType || entry?.type);
-    if (!groups.has(type)) {
-      groups.set(type, []);
-    }
-    groups.get(type).push(entry);
-  });
-  return groups;
-}
-
-function deriveMediaOrderKey(entry) {
-  if (!entry) return '';
-  if (entry.path) return String(entry.path);
-  if (entry.url) return String(entry.url);
-  if (typeof entry === 'string') return entry;
-  return '';
-}
-
-function assignMediaOrderLookup(entry, type, order, pathMap, urlMap) {
-  const info = {
-    order,
-    type: normalizeMediaGroupType(type)
-  };
-  const key = deriveMediaOrderKey(entry);
-  if (key) {
-    pathMap.set(key, info);
-  }
-  if (entry?.url) {
-    urlMap.set(String(entry.url), info);
-  }
-  return info;
-}
-
-function getMediaSelectionOrderInfo(entry) {
-  if (!entry) return null;
-  const pathKey = entry.path ? String(entry.path) : deriveMediaOrderKey(entry);
-  const map = state.media.orderByPath;
-  if (pathKey && map instanceof Map && map.has(pathKey)) {
-    return map.get(pathKey);
-  }
-  const urlKey = entry.url ? String(entry.url) : '';
-  const fallback = state.media.orderByUrl;
-  if (urlKey && fallback instanceof Map && fallback.has(urlKey)) {
-    return fallback.get(urlKey);
-  }
-  return null;
-}
 
 function collectMediaParameterMetaForType(selectedEngines, type) {
   const entries = new Map();
@@ -1498,342 +529,6 @@ function collectMediaParameterMetaForType(selectedEngines, type) {
   return Array.from(entries.values()).filter((entry) => Boolean(entry.required));
 }
 
-function deriveMediaSlotLabel(type, slot) {
-  const baseLabel = MEDIA_TYPE_DISPLAY[type]?.label || type.toUpperCase();
-  const tokens = slot?.tokens instanceof Set ? slot.tokens : new Set();
-  const hasToken = (...candidates) => candidates.some((token) => tokens.has(token));
-  const totalSlots = typeof slot?.totalSlots === 'number' ? slot.totalSlots : 0;
-  const isStartCandidate = Boolean(slot?.isStartCandidate);
-  const isEndCandidate = Boolean(slot?.isEndCandidate);
-  const hasAnyEndCandidate = Boolean(slot?.hasAnyEndCandidate);
-  const hasAnyStartCandidate = Boolean(slot?.hasAnyStartCandidate);
-  const slotIndex = typeof slot?.index === 'number' ? slot.index : -1;
-
-  const isVisualMedia = type === 'image' || type === 'video';
-  if (isVisualMedia) {
-    const startLabel = 'START';
-    const endLabel = 'END';
-    if (isEndCandidate || hasToken(...MEDIA_SLOT_END_TOKENS)) {
-      return endLabel;
-    }
-    if (isStartCandidate || hasToken(...MEDIA_SLOT_START_TOKENS)) {
-      return startLabel;
-    }
-    if (hasAnyEndCandidate && totalSlots >= 2 && slotIndex === 0) {
-      return startLabel;
-    }
-    if (hasAnyStartCandidate && totalSlots >= 2 && slotIndex === totalSlots - 1) {
-      return endLabel;
-    }
-  }
-
-  if (slotIndex > 0) {
-    return `${baseLabel} #${slotIndex + 1}`;
-  }
-  return baseLabel;
-}
-
-function shouldDisplayMediaSlot(slot) {
-  if (!slot) return true;
-  if (slot.required) return true;
-  if (slot.isStartCandidate || slot.isEndCandidate) {
-    return true;
-  }
-  if (typeof slot.index === 'number' && slot.index <= 0) {
-    return true;
-  }
-  return false;
-}
-
-function computeMediaSlotDefinitions(selectedEngines = Array.from(state.selected.values())) {
-  const definitions = new Map();
-  selectedEngines.forEach((engine) => {
-    if (!engine || !engine.id) return;
-    const meta = getEngineMeta(engine.id);
-    if (!meta) return;
-    const paramsByType = meta.mediaParams || {};
-    const engineRequiresMedia = meta?.requiresMedia === true;
-    Object.entries(paramsByType).forEach(([rawType, params]) => {
-      if (!Array.isArray(params) || !params.length) return;
-      const type = normalizeMediaGroupType(rawType);
-      if (!definitions.has(type)) {
-        definitions.set(type, []);
-      }
-      const slots = definitions.get(type);
-      params.forEach((param, idx) => {
-        if (!param) return;
-        const tokensForParam = Array.isArray(param.tokens)
-          ? param.tokens.map((token) => String(token || '').toLowerCase()).filter(Boolean)
-          : tokenizeKey(param.key);
-        const isStartParam = tokensForParam.some((token) => MEDIA_SLOT_START_TOKENS.includes(token));
-        const isEndParam = tokensForParam.some((token) => MEDIA_SLOT_END_TOKENS.includes(token));
-        const isRequiredParam = Boolean(param.required);
-        if (!engineRequiresMedia && !isRequiredParam && !isStartParam && !isEndParam) {
-          return;
-        }
-        if (!slots[idx]) {
-          slots[idx] = {
-            type,
-            index: idx,
-            originalIndex: idx,
-            keys: new Set(),
-            tokens: new Set(),
-            required: false
-          };
-        }
-        const slot = slots[idx];
-        if (param.key) {
-          slot.keys.add(param.key);
-          tokensForParam.forEach((token) => slot.tokens.add(token));
-        }
-        if (isRequiredParam) {
-          slot.required = true;
-        }
-        if (isStartParam) {
-          slot.isStartCandidate = true;
-        }
-        if (isEndParam) {
-          slot.isEndCandidate = true;
-        }
-      });
-    });
-  });
-
-  definitions.forEach((slots, type) => {
-    if (!Array.isArray(slots)) {
-      definitions.set(type, []);
-      return;
-    }
-    const filtered = slots.filter(Boolean).map((slot) => {
-      const tokens = slot.tokens instanceof Set ? new Set(slot.tokens) : new Set();
-      const startCandidate = MEDIA_SLOT_START_TOKENS.some((token) => tokens.has(token));
-      const endCandidate = MEDIA_SLOT_END_TOKENS.some((token) => tokens.has(token));
-      return {
-        ...slot,
-        tokens,
-        isStartCandidate: startCandidate,
-        isEndCandidate: endCandidate,
-        originalIndex: typeof slot.originalIndex === 'number' ? slot.originalIndex : slot.index || 0
-      };
-    });
-    const computePriority = (slot) => {
-      if (type === 'image' || type === 'video') {
-        if (slot.isStartCandidate) {
-          return 0;
-        }
-        if (slot.isEndCandidate) {
-          return 2;
-        }
-      }
-      return 1;
-    };
-    filtered.sort((a, b) => {
-      const diff = computePriority(a) - computePriority(b);
-      if (diff) return diff;
-      return (a.originalIndex || 0) - (b.originalIndex || 0);
-    });
-    const totalSlots = filtered.length;
-    const hasAnyStartCandidate = filtered.some((slot) => slot.isStartCandidate);
-    const hasAnyEndCandidate = filtered.some((slot) => slot.isEndCandidate);
-    const normalized = filtered.map((slot, idx) => {
-      const tokens = slot.tokens instanceof Set ? slot.tokens : new Set();
-      const decorated = {
-        ...slot,
-        type,
-        index: idx,
-        slotId: `${type}:${idx}`,
-        tokens,
-        totalSlots,
-        hasAnyStartCandidate,
-        hasAnyEndCandidate
-      };
-      const slotVisible = shouldDisplayMediaSlot(decorated);
-      return {
-        ...decorated,
-        label: deriveMediaSlotLabel(type, decorated),
-        visible: slotVisible,
-        hidden: !slotVisible
-      };
-    });
-    definitions.set(type, normalized);
-  });
-
-  return definitions;
-}
-
-function getMediaSlotAssignments(slotDefinitions) {
-  const assignments = new Map();
-  const extrasByType = new Map();
-  const mediaList = getSelectedMediaList();
-  const grouped = groupMediaEntriesByType(mediaList);
-
-  slotDefinitions.forEach((slots, type) => {
-    const entries = grouped.get(type) || [];
-    slots.forEach((slot, idx) => {
-      if (entries[idx]) {
-        assignments.set(slot.slotId, entries[idx]);
-      }
-    });
-    if (entries.length > slots.length) {
-      extrasByType.set(type, entries.slice(slots.length));
-    }
-  });
-
-  grouped.forEach((entries, type) => {
-    if (!slotDefinitions.has(type)) {
-      extrasByType.set(type, entries.slice());
-    }
-  });
-
-  return { assignments, extrasByType };
-}
-
-function buildSelectedMediaFromSlots(slotDefinitions, assignments, extrasByType = new Map()) {
-  const result = [];
-  const handledTypes = new Set();
-
-  MEDIA_SELECTION_TYPE_ORDER.forEach((type) => {
-    handledTypes.add(type);
-    const slots = slotDefinitions.get(type) || [];
-    slots.forEach((slot) => {
-      const entry = assignments.get(slot.slotId);
-      if (!entry) return;
-      const normalizedType = normalizeMediaGroupType(entry.filterType || type);
-      result.push({
-        ...entry,
-        filterType: normalizedType,
-        slotId: slot.slotId
-      });
-    });
-    const extras = extrasByType.get(type) || [];
-    extras.forEach((entry) => {
-      result.push({
-        ...entry,
-        filterType: normalizeMediaGroupType(entry.filterType || type)
-      });
-    });
-  });
-
-  extrasByType.forEach((entries, type) => {
-    if (handledTypes.has(type)) return;
-    entries.forEach((entry) => {
-      result.push({
-        ...entry,
-        filterType: normalizeMediaGroupType(entry.filterType || type)
-      });
-    });
-  });
-
-  return result;
-}
-
-function findSlotDefinitionById(slotDefinitions, slotId) {
-  if (!slotId) return null;
-  for (const [type, slots] of slotDefinitions.entries()) {
-    const match = slots.find((slot) => slot.slotId === slotId);
-    if (match) {
-      return match;
-    }
-  }
-  return null;
-}
-
-function findNextEmptySlotId(slotDefinitions, assignments, currentSlotId = '', typeFilter = '') {
-  const orderedSlots = [];
-  slotDefinitions.forEach((slots, type) => {
-    if (typeFilter && type !== typeFilter) {
-      return;
-    }
-    slots.forEach((slot) => {
-      orderedSlots.push(slot.slotId);
-    });
-  });
-  if (!orderedSlots.length) return '';
-  const startIndex = currentSlotId ? orderedSlots.indexOf(currentSlotId) : -1;
-  const orderedSearch = startIndex >= 0
-    ? orderedSlots.slice(startIndex + 1).concat(orderedSlots.slice(0, startIndex + 1))
-    : orderedSlots;
-  const next = orderedSearch.find((slotId) => !assignments.has(slotId));
-  return next || '';
-}
-
-function resolveActiveMediaSlot(slotDefinitions, assignments) {
-  const orderedSlots = [];
-  slotDefinitions.forEach((slots) => {
-    slots.forEach((slot) => orderedSlots.push(slot.slotId));
-  });
-  if (!orderedSlots.length) {
-    if (state.media.activeSlot) {
-      state.media.activeSlot = '';
-    }
-    return '';
-  }
-  let next = state.media.activeSlot && orderedSlots.includes(state.media.activeSlot)
-    ? state.media.activeSlot
-    : '';
-  if (!next) {
-    next = orderedSlots.find((slotId) => !assignments.has(slotId)) || orderedSlots[0];
-  }
-  if (state.media.activeSlot !== next) {
-    state.media.activeSlot = next;
-  }
-  return next;
-}
-
-function createMediaSelectionPayload(item, forcedType = '') {
-  if (!item || (!item.path && !item.url)) {
-    return null;
-  }
-  const resolvedType = resolveMediaEntryType(item);
-  const enforcedType = forcedType ? normalizeMediaGroupType(forcedType) : '';
-  if (enforcedType && enforcedType !== normalizeMediaGroupType(resolvedType)) {
-    return null;
-  }
-  const type = enforcedType || resolvedType;
-  if (!type || type === 'other') {
-    return null;
-  }
-  const mediaUrl = item.url || item.absolute || item.webPath || '';
-  const thumbUrl = item.thumbUrl || item.thumbnail || (type === 'image' ? mediaUrl : '');
-  const path = item.path || mediaUrl;
-  if (!path) {
-    return null;
-  }
-  const extension = item.ext || extractFileExtension(path) || extractFileExtension(mediaUrl);
-  return {
-    path,
-    name: item.name || extractFilename(path),
-    url: mediaUrl,
-    thumbUrl,
-    filterType: type,
-    mime: item.mime || '',
-    ext: extension || ''
-  };
-}
-
-function assignMediaToSlot(slotId, item, options = {}) {
-  if (!slotId || !item) return false;
-  const slotDefinitions = options.slotDefinitions || computeMediaSlotDefinitions();
-  const slot = findSlotDefinitionById(slotDefinitions, slotId);
-  if (!slot) return false;
-  const { assignments, extrasByType } = options.assignmentsData || getMediaSlotAssignments(slotDefinitions);
-  const payload = createMediaSelectionPayload(item, slot.type);
-  if (!payload) return false;
-  assignments.set(slot.slotId, payload);
-
-  if (extrasByType.has(slot.type)) {
-    const filteredExtras = extrasByType.get(slot.type)
-      .filter((entry) => entry.path !== payload.path && entry.url !== payload.url);
-    extrasByType.set(slot.type, filteredExtras);
-  }
-
-  const nextList = buildSelectedMediaFromSlots(slotDefinitions, assignments, extrasByType);
-  const nextSlot = findNextEmptySlotId(slotDefinitions, assignments, slot.slotId, slot.type);
-  state.media.activeSlot = nextSlot || slot.slotId;
-  setSelectedMediaList(nextList);
-  return true;
-}
-
 function shouldDisplayMediaParamBadge(key, type, engineMeta) {
   if (!key) return false;
   if (type === 'other') return false;
@@ -1858,575 +553,7 @@ function getSoundTextParamKeys(meta) {
   return ['text'];
 }
 
-function tokenizeMediaValue(value) {
-  if (!value && value !== 0) return [];
-  return String(value)
-    .toLowerCase()
-    .split(/[^a-z0-9]+/g)
-    .filter(Boolean);
-}
-
-function deriveMediaFilterTags(source) {
-  const tokens = new Set();
-  const enqueue = (payload) => {
-    if (!payload && payload !== 0) return;
-    tokenizeMediaValue(payload).forEach((token) => tokens.add(token));
-  };
-
-  if (Array.isArray(source?.filterTags)) {
-    source.filterTags.forEach(enqueue);
-  }
-  enqueue(source?.filterType);
-  enqueue(source?.category);
-  enqueue(source?.kind);
-  enqueue(source?.type);
-  enqueue(source?.mediaType);
-  enqueue(source?.mime);
-  enqueue(source?.ext);
-  enqueue(source?.name);
-  enqueue(source?.path);
-  if (Array.isArray(source?.tags)) {
-    source.tags.forEach(enqueue);
-  }
-  if (Array.isArray(source?.labels)) {
-    source.labels.forEach(enqueue);
-  }
-
-  const tags = new Set();
-  tokens.forEach((token) => {
-    const mapped = MEDIA_HINT_LOOKUP.get(token);
-    if (mapped) {
-      tags.add(mapped);
-    }
-    if (AUDIO_EXTENSIONS.has(token)) tags.add('sound');
-    if (VIDEO_EXTENSIONS.has(token)) tags.add('video');
-    if (THREED_EXTENSIONS.has(token)) tags.add('3d');
-    if (IMAGE_EXTENSIONS.has(token)) tags.add('image');
-  });
-
-  return Array.from(tags);
-}
-
-function selectPrimaryMediaFilter(tags) {
-  if (!tags || !tags.length) return 'other';
-  for (const candidate of MEDIA_FILTER_PRIORITY) {
-    if (tags.includes(candidate)) return candidate;
-  }
-  return tags[0];
-}
-
-function attachHoverPlayback(media, { resetOnLeave = false, extraTargets = [] } = {}) {
-  if (!(media instanceof HTMLMediaElement)) return;
-
-  const handleEnter = () => {
-    const controlsState = getBatchControlsState();
-    if (controlsState?.hoverLock) return;
-    if (!media.paused) return;
-    const playPromise = media.play();
-    if (playPromise && typeof playPromise.catch === 'function') {
-      playPromise.catch(() => {});
-    }
-  };
-
-  const handleLeave = () => {
-    const controlsState = getBatchControlsState();
-    if (controlsState?.hoverLock) return;
-    try {
-      media.pause();
-      if (resetOnLeave) {
-        media.currentTime = 0;
-      }
-    } catch (err) {
-      console.warn('[Showcase] failed to pause hover media', err);
-    }
-  };
-
-  const targets = [media];
-  if (Array.isArray(extraTargets) && extraTargets.length) {
-    extraTargets.forEach((target) => {
-      if (target && typeof target.addEventListener === 'function' && !targets.includes(target)) {
-        targets.push(target);
-      }
-    });
-  }
-
-  targets.forEach((target) => {
-    target.addEventListener('mouseenter', handleEnter);
-    target.addEventListener('mouseleave', handleLeave);
-    target.addEventListener('focus', handleEnter);
-    target.addEventListener('blur', handleLeave);
-  });
-}
-
-const SHOWCASE_MEDIA_RETRY_LIMIT = 5;
-const SHOWCASE_MEDIA_RETRY_BASE_DELAY_MS = 600;
-const SHOWCASE_MEDIA_RETRY_MAX_DELAY_MS = 6000;
-
-function isMediaElementReady(media) {
-  if (!(media instanceof HTMLMediaElement)) return true;
-  if (media.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return true;
-  if (Number.isFinite(media.duration) && media.duration > 0) return true;
-  if (media.buffered && media.buffered.length > 0) return true;
-  return false;
-}
-
-function buildCacheBustedMediaUrl(src, attempt) {
-  if (!src || typeof src !== 'string') return src;
-  const stamp = `${Date.now()}-${attempt}`;
-  try {
-    if (typeof URL === 'function' && typeof window !== 'undefined' && window.location) {
-      const url = new URL(src, window.location.origin);
-      url.searchParams.set('_cb', stamp);
-      if (url.origin === window.location.origin) {
-        return `${url.pathname}${url.search}${url.hash}`;
-      }
-      return url.toString();
-    }
-  } catch (err) {
-    // ignore and fallback to manual concatenation
-  }
-  const separator = src.includes('?') ? '&' : '?';
-  return `${src}${separator}_cb=${stamp}`;
-}
-
-function bindShowcaseMediaLifecycle(media, { src, mediaType = 'media', context = 'general' } = {}) {
-  if (!(media instanceof HTMLMediaElement)) return;
-  if (media.dataset.showcaseMediaLifecycle === 'bound' || media.dataset.showcaseMediaLifecycle === 'ready') {
-    return;
-  }
-
-  const originalSrc = src || media.getAttribute('src') || media.currentSrc || '';
-  if (!originalSrc) return;
-
-  media.dataset.showcaseMediaLifecycle = 'bound';
-  media.dataset.showcaseMediaRetryCount = '0';
-
-  let disposed = false;
-  let pendingRetry = false;
-  let attemptCount = 0;
-  const timers = new Set();
-
-  const clearTimers = () => {
-    timers.forEach((id) => clearTimeout(id));
-    timers.clear();
-  };
-
-  const registerTimer = (callback, delay) => {
-    const id = setTimeout(() => {
-      timers.delete(id);
-      callback();
-    }, delay);
-    timers.add(id);
-    return id;
-  };
-
-  const readyEvents = ['loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough'];
-  const failureEvents = ['error', 'stalled', 'emptied'];
-
-  const cleanup = () => {
-    if (disposed) return;
-    disposed = true;
-    clearTimers();
-    readyEvents.forEach((evt) => media.removeEventListener(evt, handleReady));
-    failureEvents.forEach((evt) => media.removeEventListener(evt, handleFailure));
-    media.removeEventListener('play', handlePlayCheck);
-    media.dataset.showcaseMediaLifecycle = disposed ? 'disposed' : 'ready';
-    delete media.dataset.showcaseMediaRetryCount;
-  };
-
-  const handleReady = () => {
-    if (disposed) return;
-    media.dataset.showcaseMediaLifecycle = 'ready';
-    delete media.dataset.showcaseMediaRetryCount;
-    clearTimers();
-    readyEvents.forEach((evt) => media.removeEventListener(evt, handleReady));
-    failureEvents.forEach((evt) => media.removeEventListener(evt, handleFailure));
-    media.removeEventListener('play', handlePlayCheck);
-    disposed = true;
-  };
-
-  const scheduleRetry = (reason) => {
-    if (disposed || pendingRetry) return;
-    if (typeof document !== 'undefined' && !document.contains(media)) {
-      cleanup();
-      return;
-    }
-    if (isMediaElementReady(media)) {
-      handleReady();
-      return;
-    }
-    if (attemptCount >= SHOWCASE_MEDIA_RETRY_LIMIT) {
-      console.warn('[Showcase] media failed to load after retries', {
-        src: originalSrc,
-        mediaType,
-        context,
-        reason
-      });
-      clearTimers();
-      failureEvents.forEach((evt) => media.removeEventListener(evt, handleFailure));
-      media.removeEventListener('play', handlePlayCheck);
-      media.dataset.showcaseMediaLifecycle = 'failed';
-      delete media.dataset.showcaseMediaRetryCount;
-      return;
-    }
-    attemptCount += 1;
-    media.dataset.showcaseMediaRetryCount = String(attemptCount);
-    pendingRetry = true;
-    const delay = Math.min(
-      SHOWCASE_MEDIA_RETRY_BASE_DELAY_MS * Math.pow(2, attemptCount - 1),
-      SHOWCASE_MEDIA_RETRY_MAX_DELAY_MS
-    );
-
-    registerTimer(() => {
-      pendingRetry = false;
-      if (disposed) return;
-      if (typeof document !== 'undefined' && !document.contains(media)) {
-        cleanup();
-        return;
-      }
-
-      const nextSrc = buildCacheBustedMediaUrl(originalSrc, attemptCount);
-      const wasPlaying = !media.paused;
-      const resumeTime = wasPlaying ? media.currentTime : 0;
-
-      try {
-        media.pause();
-      } catch (err) {
-        console.warn('[Showcase] failed to pause media before retry', err);
-      }
-
-      try {
-        media.src = nextSrc;
-        media.load();
-      } catch (err) {
-        console.warn('[Showcase] failed to reload media', err);
-      }
-
-      if (wasPlaying) {
-        const resume = () => {
-          media.removeEventListener('canplay', resume);
-          if (disposed) return;
-          try {
-            if (resumeTime > 0 && media.seekable && media.seekable.length) {
-              const end = media.seekable.end(media.seekable.length - 1);
-              media.currentTime = Math.min(resumeTime, end);
-            } else if (resumeTime > 0) {
-              media.currentTime = resumeTime;
-            }
-          } catch (err) {
-            console.warn('[Showcase] failed to restore playback position', err);
-          }
-          media.play().catch(() => {});
-        };
-        media.addEventListener('canplay', resume, { once: true });
-      }
-
-      registerTimer(() => {
-        if (!disposed && !isMediaElementReady(media)) {
-          scheduleRetry('post-retry-check');
-        }
-      }, Math.max(delay, 1200));
-    }, delay);
-  };
-
-  const handleFailure = (evt) => {
-    scheduleRetry(evt?.type || 'failure');
-  };
-
-  const handlePlayCheck = () => {
-    if (!isMediaElementReady(media)) {
-      scheduleRetry('play');
-    }
-  };
-
-  readyEvents.forEach((evt) => media.addEventListener(evt, handleReady, { once: true }));
-  failureEvents.forEach((evt) => media.addEventListener(evt, handleFailure));
-  media.addEventListener('play', handlePlayCheck);
-
-  if (!isMediaElementReady(media)) {
-    registerTimer(() => {
-      if (!disposed && !isMediaElementReady(media)) {
-        scheduleRetry('initial');
-      }
-    }, 800);
-  } else {
-    handleReady();
-  }
-}
-
-function collectShowcaseMedia() {
-  if (typeof document === 'undefined') return [];
-  const selector = [
-    '.kc-result-card__video',
-    '.kc-results-modal__video',
-    '.kc-lightbox__video',
-    '.kc-result-card__audio',
-    '.kc-results-modal__audio',
-    '.kc-lightbox__audio'
-  ].join(',');
-  return Array.from(document.querySelectorAll(selector)).filter(
-    (node) => node instanceof HTMLMediaElement
-  );
-}
-
-function getBatchControlsState() {
-  if (!state.batchControls) {
-    state.batchControls = {
-      isPlaying: false,
-      loopEnabled: true,
-      hoverLock: false,
-      groups: []
-    };
-  }
-  return state.batchControls;
-}
-
-function applyLoopSettingToMedia(media) {
-  if (!(media instanceof HTMLMediaElement)) return;
-  const controlsState = getBatchControlsState();
-  const loopEnabled = Boolean(controlsState.loopEnabled);
-  media.loop = loopEnabled;
-  if (loopEnabled) {
-    media.setAttribute('loop', '');
-  } else {
-    media.removeAttribute('loop');
-  }
-}
-
-function handleBatchMediaPlaybackChange() {
-  const mediaElements = collectShowcaseMedia();
-  const anyPlaying = mediaElements.some((media) => !media.paused && !media.ended);
-  const controlsState = getBatchControlsState();
-  controlsState.isPlaying = anyPlaying;
-  if (!anyPlaying) {
-    controlsState.hoverLock = false;
-  }
-  updateBatchControlVisuals();
-}
-
-function ensureBatchMediaBindings() {
-  const mediaElements = collectShowcaseMedia();
-  mediaElements.forEach((media) => {
-    if (!(media instanceof HTMLMediaElement)) return;
-    applyLoopSettingToMedia(media);
-    if (media.dataset.batchControlsBound === 'true') return;
-    media.dataset.batchControlsBound = 'true';
-    media.addEventListener('play', handleBatchMediaPlaybackChange);
-    media.addEventListener('pause', handleBatchMediaPlaybackChange);
-    media.addEventListener('ended', handleBatchMediaPlaybackChange);
-  });
-}
-
-function pruneBatchControlGroups() {
-  const controlsState = getBatchControlsState();
-  controlsState.groups = controlsState.groups.filter((group) => {
-    if (!group) return false;
-    const nodes = [group.rewindBtn, group.toggleBtn, group.forwardBtn, group.loopBtn];
-    return nodes.some((node) => node && document.contains(node));
-  });
-}
-
-function updateBatchControlVisuals() {
-  ensureBatchMediaBindings();
-  pruneBatchControlGroups();
-  const controlsState = getBatchControlsState();
-  const mediaElements = collectShowcaseMedia();
-  const hasMedia = mediaElements.length > 0;
-  if (!hasMedia) {
-    controlsState.isPlaying = false;
-  }
-
-  controlsState.groups.forEach((group) => {
-    const {
-      rewindBtn,
-      toggleBtn,
-      forwardBtn,
-      loopBtn
-    } = group;
-    const disable = !hasMedia;
-
-    if (rewindBtn) {
-      rewindBtn.disabled = disable;
-      rewindBtn.setAttribute('aria-disabled', String(disable));
-    }
-    if (forwardBtn) {
-      forwardBtn.disabled = disable;
-      forwardBtn.setAttribute('aria-disabled', String(disable));
-    }
-    if (toggleBtn) {
-      toggleBtn.disabled = disable;
-      toggleBtn.setAttribute('aria-disabled', String(disable));
-      toggleBtn.textContent = controlsState.isPlaying ? '⏸' : '▶';
-      const toggleLabel = controlsState.isPlaying
-        ? '全てのメディアを一時停止'
-        : '全てのメディアを再生';
-      toggleBtn.title = toggleLabel;
-      toggleBtn.setAttribute('aria-label', toggleLabel);
-      toggleBtn.classList.toggle('is-playing', controlsState.isPlaying && !disable);
-      toggleBtn.dataset.state = controlsState.isPlaying ? 'pause' : 'play';
-    }
-    if (loopBtn) {
-      loopBtn.disabled = disable;
-      loopBtn.setAttribute('aria-disabled', String(disable));
-      if (controlsState.loopEnabled) {
-        loopBtn.textContent = '🔁';
-        loopBtn.title = 'ループ再生を無効';
-        loopBtn.setAttribute('aria-label', 'ループ再生を無効');
-      } else {
-        loopBtn.textContent = '1×';
-        loopBtn.title = 'ループ再生を有効';
-        loopBtn.setAttribute('aria-label', 'ループ再生を有効');
-      }
-    }
-  });
-}
-
-function registerBatchControlGroup({ rewindBtn, toggleBtn, forwardBtn, loopBtn }) {
-  const buttons = [rewindBtn, toggleBtn, forwardBtn, loopBtn];
-  if (buttons.some((btn) => !(btn instanceof HTMLButtonElement))) {
-    return;
-  }
-
-  const controlsState = getBatchControlsState();
-  if (!controlsState.groups.some((group) => group.toggleBtn === toggleBtn)) {
-    controlsState.groups.push({ rewindBtn, toggleBtn, forwardBtn, loopBtn });
-  }
-
-  if (rewindBtn && !rewindBtn.dataset.batchControlButtonBound) {
-    rewindBtn.dataset.batchControlButtonBound = 'true';
-    rewindBtn.addEventListener('click', (evt) => {
-      evt.preventDefault();
-      rewindAllShowcaseMedia();
-    });
-  }
-  if (forwardBtn && !forwardBtn.dataset.batchControlButtonBound) {
-    forwardBtn.dataset.batchControlButtonBound = 'true';
-    forwardBtn.addEventListener('click', (evt) => {
-      evt.preventDefault();
-      skipAllShowcaseMediaToEnd();
-    });
-  }
-  if (toggleBtn && !toggleBtn.dataset.batchControlButtonBound) {
-    toggleBtn.dataset.batchControlButtonBound = 'true';
-    toggleBtn.addEventListener('click', (evt) => {
-      evt.preventDefault();
-      togglePlayPauseAllShowcaseMedia();
-    });
-  }
-  if (loopBtn && !loopBtn.dataset.batchControlButtonBound) {
-    loopBtn.dataset.batchControlButtonBound = 'true';
-    loopBtn.addEventListener('click', (evt) => {
-      evt.preventDefault();
-      toggleLoopModeForShowcaseMedia();
-    });
-  }
-
-  updateBatchControlVisuals();
-}
-
-function playAllShowcaseMedia({ reset = false } = {}) {
-  const mediaElements = collectShowcaseMedia();
-  const controlsState = getBatchControlsState();
-  mediaElements.forEach((media) => {
-    try {
-      if (reset) {
-        media.currentTime = 0;
-      }
-      const playPromise = media.play();
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(() => {
-          handleBatchMediaPlaybackChange();
-        });
-      }
-    } catch (err) {
-      console.warn('[Showcase] failed to play media', err);
-    }
-  });
-  if (mediaElements.length) {
-    controlsState.isPlaying = true;
-    controlsState.hoverLock = true;
-  } else {
-    controlsState.isPlaying = false;
-    controlsState.hoverLock = false;
-  }
-  updateBatchControlVisuals();
-}
-
-function pauseAllShowcaseMedia({ reset = false } = {}) {
-  const mediaElements = collectShowcaseMedia();
-  mediaElements.forEach((media) => {
-    try {
-      media.pause();
-      if (reset) {
-        media.currentTime = 0;
-      }
-    } catch (err) {
-      console.warn('[Showcase] failed to pause media', err);
-    }
-  });
-  const controlsState = getBatchControlsState();
-  controlsState.isPlaying = false;
-  controlsState.hoverLock = false;
-  updateBatchControlVisuals();
-}
-
-function rewindAllShowcaseMedia() {
-  pauseAllShowcaseMedia({ reset: true });
-}
-
-function skipAllShowcaseMediaToEnd() {
-  const mediaElements = collectShowcaseMedia();
-  mediaElements.forEach((media) => {
-    try {
-      const hasDuration = Number.isFinite(media.duration) && media.duration > 0;
-      if (hasDuration) {
-        media.currentTime = media.duration;
-      } else if (media.seekable && media.seekable.length) {
-        media.currentTime = media.seekable.end(media.seekable.length - 1);
-      }
-      media.pause();
-    } catch (err) {
-      console.warn('[Showcase] failed to seek media', err);
-    }
-  });
-  const controlsState = getBatchControlsState();
-  controlsState.isPlaying = false;
-  controlsState.hoverLock = false;
-  updateBatchControlVisuals();
-}
-
-function togglePlayPauseAllShowcaseMedia() {
-  const controlsState = getBatchControlsState();
-  if (controlsState.isPlaying) {
-    pauseAllShowcaseMedia({ reset: false });
-  } else {
-    playAllShowcaseMedia({ reset: false });
-  }
-}
-
-function toggleLoopModeForShowcaseMedia() {
-  const controlsState = getBatchControlsState();
-  controlsState.loopEnabled = !controlsState.loopEnabled;
-  const mediaElements = collectShowcaseMedia();
-  mediaElements.forEach((media) => {
-    applyLoopSettingToMedia(media);
-  });
-  updateBatchControlVisuals();
-}
-
-const CATEGORY_TYPE_FILTERS = {
-  image: ['t2i', 'i2i'],
-  video: ['t2v', 'i2v', 'r2v', 's2v', 'a2v', 'v2v'],
-  '3d': ['i2i3d'],
-  sound: ['v2a', 'v2sfx', 't2a', 't2s', 'tts', 't2m'],
-  other: ['t2visual', 'file', 'train', 'misc']
-};
-
-const ALL_TYPE_FILTERS = Array.from(new Set(Object.values(CATEGORY_TYPE_FILTERS).flat())).sort();
-
 const CATEGORY_OVERRIDES = {};
-
-const MEDIA_CACHE_TTL_MS = 60000;
 
 const BADGE_THEME_PREFIX = 'kc-theme--';
 const BADGE_THEME_MAP = new Map([
@@ -2535,351 +662,403 @@ function applyBadgeTheme(target, tokens, options = {}) {
   return theme;
 }
 
-const state = {
-  categories: [],
-  enginesByCategory: new Map(),
-  engineIndex: new Map(),
-  enginesLoading: new Set(),
-  selected: new Map(),
-  inputs: new Map(),
-  history: [],
-  historyActiveId: null,
-  historyFilters: createDefaultHistoryFilters(),
-  historyManualSelection: false,
-  engineCategoryInitialized: false,
-  activeEngineCategory: ALL_CATEGORY_ID,
-  categoryTabs: {},
-  prompt: '',
-  soundText: '',
-  engineSearchKeyword: '',
-  filePrefix: '',
-  isRunning: false,
-  resultsByCategory: {},
-  activeCategory: DEFAULT_ACTIVE_CATEGORY,
-  templates: [],
-  scanPath: '',
-  backendOrigin: '',
-  templateDefaults: [],
-  templateCustom: [],
-  templateHidden: new Set(),
-  templateMenuFilters: {
-    category: ALL_CATEGORY_ID,
-    type: 'all',
-    query: ''
-  },
-  docMetadata: new Map(),
-  media: {
-    items: [],
-    filtered: [],
-    isLoading: false,
-    error: '',
-    selected: [],
-    activeSlot: '',
-    lastLoadedAt: 0,
-    searchKeyword: '',
-    sortMode: 'name',
-    typeFilter: 'all',
-    orderByPath: new Map(),
-    orderByUrl: new Map()
-  },
-  promptGenerator: {
-    mode: 'enhance',
-    loading: false,
-    error: '',
-    message: '',
-    suggestions: [],
-    lastPrompt: '',
-    lastMode: 'enhance',
-    requestId: 0,
-    showPanel: false,
-    variantCount: PROMPT_GENERATOR_DEFAULT_VARIANTS,
-    selectedCategory: '',
-    selectedType: '',
-    guidanceByType: {},
-    activeGuidance: '',
-    categoryDirty: false,
-    typeDirty: false,
-    guidanceDirty: false
-  },
-  jobs: new Map(),
-  jobPollers: new Map(),
-  currentJobId: '',
-  currentRunResults: new Map(),
-  completedEngineKeys: new Set(),
-  currentHistoryEntryId: '',
-  currentJobEngines: [],
-  activeJobSnapshot: null,
-  engineDisplayOrder: new Map(),
-  batchControls: {
-    isPlaying: false,
-    loopEnabled: true,
-    groups: []
-  },
-  showFailures: true,
-  showInputs: true,
-  showParameters: true,
-  resultsPromptExpanded: false,
-  resultsFileFilter: 'all'
-};
-state.promptGenerator.mode = PROMPT_GENERATOR_DEFAULT_MODE;
-state.promptGenerator.lastMode = PROMPT_GENERATOR_DEFAULT_MODE;
+function coerceTemplateContextShape(input) {
+  if (!input || typeof input !== 'object') return null;
+  const tags = Array.isArray(input.tags)
+    ? input.tags.map((tag) => String(tag || '').trim()).filter(Boolean)
+    : [];
+  const overrides = (input.overrides && typeof input.overrides === 'object')
+    ? {
+        prompt: Boolean(input.overrides.prompt),
+        filePrefix: Boolean(input.overrides.filePrefix),
+        soundText: Boolean(input.overrides.soundText)
+      }
+    : null;
+  const provided = {
+    prompt: typeof input.prompt === 'string',
+    filePrefix: typeof input.filePrefix === 'string' && input.filePrefix.trim() !== '',
+    soundText: typeof input.soundText === 'string' && input.soundText.trim() !== '',
+    memo: typeof input.memo === 'string' && input.memo.trim() !== ''
+  };
+  return {
+    id: typeof input.id === 'string' ? input.id : '',
+    name: typeof input.name === 'string' ? input.name : '',
+    category: normalizeCategory(input.category || ''),
+    type: normalizeTypeToken(input.type || ''),
+    memo: typeof input.memo === 'string' ? input.memo : '',
+    prompt: typeof input.prompt === 'string' ? input.prompt : '',
+    filePrefix: typeof input.filePrefix === 'string' ? input.filePrefix.trim() : '',
+    soundText: typeof input.soundText === 'string' ? input.soundText : '',
+    description: typeof input.description === 'string' ? input.description : '',
+    tags,
+    source: typeof input.source === 'string' ? input.source : '',
+    appliedAt: Number.isFinite(input.appliedAt) ? input.appliedAt : null,
+    overrides,
+    provided
+  };
+}
 
+function normalizeTemplateContext(raw, fallback = null) {
+  const primary = coerceTemplateContextShape(raw);
+  const fallbackShape = fallback ? coerceTemplateContextShape(fallback) : null;
+  if (!primary && !fallbackShape) {
+    return null;
+  }
+  const base = primary || fallbackShape;
+  const result = { ...base };
+  if (fallbackShape) {
+    if (!result.id && fallbackShape.id) result.id = fallbackShape.id;
+    if (!result.name && fallbackShape.name) result.name = fallbackShape.name;
+    if (!result.category && fallbackShape.category) result.category = fallbackShape.category;
+    if (!result.type && fallbackShape.type) result.type = fallbackShape.type;
+    if (!result.memo && fallbackShape.memo) result.memo = fallbackShape.memo;
+    if (!result.prompt && fallbackShape.prompt) result.prompt = fallbackShape.prompt;
+    if (!result.filePrefix && fallbackShape.filePrefix) result.filePrefix = fallbackShape.filePrefix;
+    if (!result.soundText && fallbackShape.soundText) result.soundText = fallbackShape.soundText;
+    if (!result.description && fallbackShape.description) result.description = fallbackShape.description;
+    if (!result.source && fallbackShape.source) result.source = fallbackShape.source;
+    if (!result.tags.length && fallbackShape.tags.length) {
+      result.tags = fallbackShape.tags.slice();
+    }
+    result.provided = {
+      prompt: Boolean(result.provided?.prompt || fallbackShape.provided?.prompt),
+      filePrefix: Boolean(result.provided?.filePrefix || fallbackShape.provided?.filePrefix),
+      soundText: Boolean(result.provided?.soundText || fallbackShape.provided?.soundText),
+      memo: Boolean(result.provided?.memo || fallbackShape.provided?.memo)
+    };
+  } else if (!result.provided) {
+    result.provided = {
+      prompt: Boolean(result.prompt),
+      filePrefix: Boolean(result.filePrefix),
+      soundText: Boolean(result.soundText),
+      memo: Boolean(result.memo)
+    };
+  }
 
-SUPPORTED_CATEGORIES.forEach((category) => {
-  state.categoryTabs[category] = 'engine';
-  state.resultsByCategory[category] = [];
-});
+  result.appliedAt = Number.isFinite(result.appliedAt) ? result.appliedAt : Date.now();
+  result.overrides = result.overrides
+    ? {
+        prompt: Boolean(result.overrides.prompt),
+        filePrefix: Boolean(result.overrides.filePrefix),
+        soundText: Boolean(result.overrides.soundText)
+      }
+    : {
+        prompt: false,
+        filePrefix: false,
+        soundText: false
+      };
+  result.tags = Array.isArray(result.tags) ? result.tags : [];
+  return result;
+}
 
-let activeLightbox = null;
-let activeParamsPopover = null;
-let paramsPopoverCloseTimer = null;
+function cloneTemplateContext(source, fallback = null) {
+  const normalized = normalizeTemplateContext(source, fallback);
+  if (!normalized) return null;
+  return {
+    ...normalized,
+    tags: normalized.tags.slice(),
+    overrides: { ...normalized.overrides },
+    provided: { ...normalized.provided }
+  };
+}
+
+function createTemplateContextSnapshot(source = null, fallback = null) {
+  if (source) {
+    return cloneTemplateContext(source, fallback);
+  }
+  return cloneTemplateContext(state.activeTemplateContext, fallback);
+}
+
+function setActiveTemplateContext(context) {
+  const snapshot = cloneTemplateContext(context);
+  if (!snapshot) {
+    state.activeTemplateContext = null;
+    syncTemplatePreviewUi();
+    return;
+  }
+  if (!Number.isFinite(snapshot.appliedAt)) {
+    snapshot.appliedAt = Date.now();
+  }
+  state.activeTemplateContext = snapshot;
+  updateActiveTemplateOverrides({ syncUi: false });
+  syncTemplatePreviewUi();
+}
+
+function clearActiveTemplateContext({ syncUi = true } = {}) {
+  state.activeTemplateContext = null;
+  if (syncUi) {
+    syncTemplatePreviewUi();
+  }
+}
+
+function updateActiveTemplateOverrides({ syncUi = true } = {}) {
+  const ctx = state.activeTemplateContext;
+  if (!ctx) return;
+  const promptBaseline = (ctx.prompt || '').trim();
+  const prefixBaseline = (ctx.filePrefix || '').trim();
+  const soundBaseline = (ctx.soundText || '').trim();
+  const currentPrompt = (state.prompt || '').trim();
+  const currentPrefix = (state.filePrefix || '').trim();
+  const currentSound = (state.soundText || '').trim();
+  const provided = ctx.provided || {};
+  const nextOverrides = {
+    prompt: currentPrompt !== promptBaseline,
+    filePrefix: provided.filePrefix ? currentPrefix !== prefixBaseline : false,
+    soundText: provided.soundText ? currentSound !== soundBaseline : false
+  };
+  const hasChanges = !ctx.overrides
+    || ctx.overrides.prompt !== nextOverrides.prompt
+    || ctx.overrides.filePrefix !== nextOverrides.filePrefix
+    || ctx.overrides.soundText !== nextOverrides.soundText;
+  if (hasChanges) {
+    state.activeTemplateContext = {
+      ...ctx,
+      overrides: nextOverrides
+    };
+  }
+  if (syncUi) {
+    syncTemplatePreviewUi();
+  }
+}
+
+function listTemplatesForInference() {
+  const defaults = Array.isArray(state.templateDefaults) ? state.templateDefaults : [];
+  const custom = Array.isArray(state.templateCustom) ? state.templateCustom : [];
+  const visible = Array.isArray(state.templates) ? state.templates : [];
+  const combined = [...defaults, ...custom, ...visible];
+  const seen = new Set();
+  const result = [];
+  combined.forEach((tpl) => {
+    if (!tpl || typeof tpl !== 'object') return;
+    const key = tpl.id || `${tpl.category || ''}-${tpl.name || ''}-${tpl.prompt || ''}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    result.push(tpl);
+  });
+  return result;
+}
+
+function inferTemplateContextFromPrompt(prompt, { filePrefix = '' } = {}) {
+  const trimmedPrompt = typeof prompt === 'string' ? prompt.trim() : '';
+  if (!trimmedPrompt) return null;
+  const trimmedPrefix = typeof filePrefix === 'string' ? filePrefix.trim() : '';
+  const templates = listTemplatesForInference();
+  if (!templates.length) return null;
+  const matches = templates.filter((tpl) => (
+    typeof tpl?.prompt === 'string' && tpl.prompt.trim() === trimmedPrompt
+  ));
+  if (!matches.length) return null;
+  let candidate = matches[0];
+  if (trimmedPrefix) {
+    const prefixMatch = matches.find((tpl) => (
+      typeof tpl.filePrefix === 'string' && tpl.filePrefix.trim() === trimmedPrefix
+    ));
+    if (prefixMatch) {
+      candidate = prefixMatch;
+    }
+  }
+  return candidate ? cloneTemplateContext(candidate) : null;
+}
+
+function resolveEntryTemplateContext(entry) {
+  if (!entry || typeof entry !== 'object') return null;
+  let context = null;
+  if (entry.templateContext) {
+    context = cloneTemplateContext(entry.templateContext);
+  }
+  if (!context && Array.isArray(entry.results)) {
+    for (const result of entry.results) {
+      if (result && result.templateContext) {
+        context = cloneTemplateContext(result.templateContext, entry.templateContext);
+        break;
+      }
+    }
+  }
+  if (!context) {
+    const prompt = (entry.prompt || '').trim();
+    if (prompt) {
+      let inferredPrefix = '';
+      if (entry.templateContext?.filePrefix) {
+        inferredPrefix = entry.templateContext.filePrefix;
+      } else if (Array.isArray(entry.results)) {
+        const withPrefix = entry.results.find((item) => item && (item.filePrefix || item.savedFile?.prefix));
+        if (withPrefix) {
+          inferredPrefix = withPrefix.filePrefix || withPrefix.savedFile?.prefix || '';
+        }
+      }
+      context = inferTemplateContextFromPrompt(prompt, { filePrefix: inferredPrefix });
+    }
+  }
+  return context;
+}
+
 let activePromptPopover = null;
 let activeResultsModal = null;
 let activeTemplateMenu = null;
 let templateMenuCloseTimer = null;
 let activeTemplateModal = null;
 let activePromptModal = null;
+let activeMcpConfigModal = null;
 let promptGeneratorStatusTimer = null;
 let promptGeneratorMenuState = null;
 let promptGeneratorHostElement = null;
-
-const HISTORY_STORAGE_KEY = 'kc-showcase-history-v1';
-const TEMPLATE_STORAGE_KEY = 'kc-showcase-templates-v1';
-const FILE_PREFIX_STORAGE_KEY = 'kc-showcase-file-prefix-v1';
-const FAILURE_VISIBILITY_STORAGE_KEY = 'kc-showcase-show-failures';
-const INPUT_VISIBILITY_STORAGE_KEY = 'kc-showcase-show-inputs';
-const PARAM_VISIBILITY_STORAGE_KEY = 'kc-showcase-show-params';
-const RESULTS_FILE_FILTER_STORAGE_KEY = 'kc-showcase-results-file-filter';
-const TEMPLATE_LIMIT = Number.POSITIVE_INFINITY;
-const MAX_HISTORY_ENTRIES = Number.POSITIVE_INFINITY;
-const PROMPT_PLACEHOLDER = 'プロンプトを入力してください';
-const SOUND_TEXT_PLACEHOLDER = '音声テキストを入力してください';
-const PROMPT_MIN_HEIGHT = 36;
-const PROMPT_MAX_HEIGHT = 520;
-const JOB_POLL_INTERVAL_MS = 2500;
-const JOB_POLL_ERROR_DELAY_MS = 5000;
-const PARAMS_POPOVER_HIDE_DELAY_MS = 420;
-
-function isSupportedCategory(category) {
-  return SUPPORTED_CATEGORIES.includes(category);
-}
-
-function categoryLabel(category) {
-  if (!category && category !== 0) return '';
-  if (String(category).toLowerCase() === ALL_CATEGORY_ID) return ALL_CATEGORY_LABEL;
-  return CATEGORY_LABELS[category] || category || '';
-}
-
-function normalizeCategory(category) {
-  if (!category) return DEFAULT_ACTIVE_CATEGORY;
-  const lower = String(category).toLowerCase();
-  if (lower === ALL_CATEGORY_ID) return ALL_CATEGORY_ID;
-  if (lower === 'text') return 'image';
-  if (lower === 'img' || lower === 'images') return 'image';
-  if (isSupportedCategory(lower)) return lower;
-  if (['audio', 'speech', 'music'].includes(lower)) return 'sound';
-  if (lower === 'misc' || lower === 'other') return 'other';
-  return 'other';
-}
-
-function normalizeTemplateEntry(entry, fallbackCategory = DEFAULT_ACTIVE_CATEGORY) {
-  if (!entry) return null;
-  const clone = { ...entry };
-  const typeCandidates = [clone.type, clone.sourceCategory, clone.category];
-  let normalizedType = '';
-  for (const candidate of typeCandidates) {
-    const normalized = normalizeTypeToken(candidate);
-    if (normalized) {
-      normalizedType = normalized;
-      break;
-    }
-  }
-  const categoryCandidate = clone.category || normalizedType || fallbackCategory;
-  const normalizedCategory = normalizeCategory(categoryCandidate);
-  clone.category = normalizedCategory;
-  clone.type = normalizedType;
-  if (typeof clone.filePrefix === 'string') {
-    clone.filePrefix = clone.filePrefix.trim();
-  } else {
-    clone.filePrefix = '';
-  }
-  if (typeof clone.memo === 'string') {
-    clone.memo = clone.memo.trim();
-  } else {
-    clone.memo = '';
-  }
-  if (typeof clone.soundText === 'string') {
-    clone.soundText = clone.soundText.trim();
-  } else {
-    clone.soundText = '';
-  }
-  return clone;
-}
-
-function ensureTemplateMenuFilters() {
-  const defaults = {
-    category: ALL_CATEGORY_ID,
-    type: 'all',
-    query: ''
-  };
-  if (!state.templateMenuFilters || typeof state.templateMenuFilters !== 'object') {
-    state.templateMenuFilters = { ...defaults };
-  }
-  const filters = state.templateMenuFilters;
-  let category = filters.category;
-  if (category === undefined || category === null || category === '') {
-    category = state.activeEngineCategory || ALL_CATEGORY_ID;
-  }
-  if (!category) {
-    category = ALL_CATEGORY_ID;
-  }
-  const normalizedCategory = String(category).toLowerCase() === ALL_CATEGORY_ID
-    ? ALL_CATEGORY_ID
-    : normalizeCategory(category);
-  filters.category = normalizedCategory || ALL_CATEGORY_ID;
-
-  let type = typeof filters.type === 'string' ? filters.type.trim().toLowerCase() : 'all';
-  if (!type) {
-    type = 'all';
-  }
-  if (type !== 'all' && type !== 'other') {
-    const normalizedType = normalizeTypeToken(type);
-    filters.type = normalizedType || 'all';
-  } else {
-    filters.type = type;
-  }
-
-  if (typeof filters.query !== 'string') {
-    filters.query = '';
-  }
-
-  return filters;
-}
+let engineLoadingOverlay = null;
 
 function isAllCategory(category) {
   if (!category && category !== 0) return false;
   return String(category).toLowerCase() === ALL_CATEGORY_ID;
 }
 
-function resolveCategoryCandidate(...candidates) {
-  for (const candidate of candidates) {
-    if (!candidate && candidate !== 0) continue;
-    const normalized = normalizeCategory(candidate);
-    if (normalized && normalized !== 'other') {
-      return normalized;
-    }
-  }
-  return 'other';
-}
-
-function inferCategoryFromTokens(tokens, fallback = 'other') {
-  const evaluated = new Set();
-  tokens.forEach((token) => {
-    if (!token && token !== 0) return;
-    const lower = String(token).toLowerCase();
-    if (!lower) return;
-    evaluated.add(lower);
-    if (TYPE_PREFIX_TO_CATEGORY.has(lower)) {
-      evaluated.add(TYPE_PREFIX_TO_CATEGORY.get(lower));
-    }
-  });
-
-  const fromPrefixes = Array.from(evaluated).find((candidate) => TYPE_PREFIX_TO_CATEGORY.has(candidate));
-  if (fromPrefixes) {
-    return TYPE_PREFIX_TO_CATEGORY.get(fromPrefixes);
-  }
-
-  const resolved = resolveCategoryCandidate(...evaluated);
-  if (resolved && resolved !== 'other') {
-    return resolved;
-  }
-
-  const normalizedFallback = normalizeCategory(fallback);
-  return normalizedFallback === 'other' ? DEFAULT_ACTIVE_CATEGORY : normalizedFallback;
-}
-
-function normalizeTypeToken(token) {
-  if (token === undefined || token === null) return '';
-  const lower = String(token).trim().toLowerCase();
-  if (!lower) return '';
-  if (TYPE_PREFIX_TO_CATEGORY.has(lower)) return lower;
-  return '';
-}
-
-function resolveTypePrefix(tokens, fallback = '') {
-  for (const token of tokens) {
-    const normalized = normalizeTypeToken(token);
-    if (normalized) {
-      return normalized;
-    }
-  }
-  const fallbackNormalized = normalizeTypeToken(fallback);
-  return fallbackNormalized || '';
-}
-
-function requiresMediaForPrefix(prefix) {
-  if (!prefix) return false;
-  return PREFIXES_REQUIRING_MEDIA.has(String(prefix).toLowerCase());
-}
-
-function extractEnginePrefix(value) {
-  if (!value) return '';
-  const match = String(value).toLowerCase().match(/^([a-z0-9]+)-/);
-  return match ? match[1] : '';
-}
-
-function normalizeMediaSelection() {
-  if (Array.isArray(state.media.selected)) {
-    return state.media.selected;
-  }
-  if (state.media.selected && typeof state.media.selected === 'object') {
-    state.media.selected = [state.media.selected];
+function getSoraState() {
+  if (!state.sora || typeof state.sora !== 'object') {
+    state.sora = {
+      mode: 't2v',
+      remixEligible: false
+    };
   } else {
-    state.media.selected = [];
+    if (typeof state.sora.mode !== 'string') {
+      state.sora.mode = 't2v';
+    }
+    if (typeof state.sora.remixEligible !== 'boolean') {
+      state.sora.remixEligible = false;
+    }
+    if (Object.prototype.hasOwnProperty.call(state.sora, 'qualityMode')) {
+      delete state.sora.qualityMode;
+    }
   }
-  return state.media.selected;
+  return state.sora;
 }
 
-function getSelectedMediaList() {
-  return normalizeMediaSelection();
-}
-
-function setSelectedMediaList(entries) {
-  state.media.selected = Array.isArray(entries) ? entries.slice() : [];
-  if (!state.media.selected.length) {
-    state.media.activeSlot = '';
+function normalizeSoraSize(value) {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^0-9x]/g, '');
+  if (SORA_SIZE_OPTIONS.includes(normalized)) {
+    return normalized;
   }
-  applySelectedMediaToEngineInputs();
+  return SORA_DEFAULT_SIZE;
 }
 
-function deriveMediaBindingValue(entry) {
+function hasSoraVideoId(entry) {
+  if (!entry) return false;
+  return Boolean(
+    entry.videoId
+    || entry.soraVideoId
+    || (entry.sora && entry.sora.videoId)
+    || (entry.savedFile && entry.savedFile.videoId)
+  );
+}
+
+function extractSoraVideoId(entry) {
   if (!entry) return '';
-  const candidates = [];
-  if (entry.path) {
-    candidates.push(String(entry.path));
+  return entry.videoId
+    || entry.soraVideoId
+    || (entry.sora && entry.sora.videoId)
+    || (entry.savedFile && entry.savedFile.videoId)
+    || '';
+}
+
+function analyzeSoraMedia(groupedMedia = new Map()) {
+  const imageEntries = groupedMedia.get('image') || [];
+  const videoEntries = groupedMedia.get('video') || [];
+  const soraVideoEntry = videoEntries.find((entry) => hasSoraVideoId(entry));
+  if (soraVideoEntry) {
+    return {
+      mode: 'remix',
+      remixEligible: true,
+      remixEntry: soraVideoEntry
+    };
   }
-  if (entry.url) {
-    const rawUrl = String(entry.url);
-    if (typeof window !== 'undefined') {
-      try {
-        const resolved = new URL(rawUrl, window.location.origin);
-        if (resolved.origin === window.location.origin) {
-          candidates.push(resolved.pathname + resolved.search);
-        } else {
-          candidates.push(rawUrl);
-        }
-      } catch (err) {
-        candidates.push(rawUrl);
+  if (videoEntries.length) {
+    return {
+      mode: 'remix',
+      remixEligible: false,
+      remixEntry: null
+    };
+  }
+  if (imageEntries.length) {
+    return {
+      mode: 'i2v',
+      remixEligible: false,
+      remixEntry: null
+    };
+  }
+  return {
+    mode: 't2v',
+    remixEligible: false,
+    remixEntry: null
+  };
+}
+
+function updateSoraEngineInputs(store, { groupedMedia = new Map() } = {}) {
+  const soraState = getSoraState();
+  const analysis = analyzeSoraMedia(groupedMedia);
+  soraState.mode = analysis.mode;
+  soraState.remixEligible = analysis.remixEligible;
+
+  if (!store) {
+    return analysis;
+  }
+
+  const rawModel = (store.model || '').toString().trim();
+  let normalizedModel = SORA_MODEL_OPTIONS.includes(rawModel) ? rawModel : 'sora-2';
+  let normalizedSize = normalizeSoraSize(store.size || SORA_DEFAULT_SIZE);
+  if (SORA_PRO_ONLY_SIZES.has(normalizedSize) && normalizedModel !== 'sora-2-pro') {
+    normalizedModel = 'sora-2-pro';
+  }
+  store.model = normalizedModel;
+  store.size = normalizedSize;
+  const rawSeconds = store.seconds;
+  let normalizedSeconds;
+  if (rawSeconds === undefined || rawSeconds === null || rawSeconds === '') {
+    normalizedSeconds = SORA_DEFAULT_SECONDS;
+  } else if (typeof rawSeconds === 'number') {
+    normalizedSeconds = String(rawSeconds);
+  } else {
+    normalizedSeconds = String(rawSeconds).trim();
+  }
+  if (!SORA_SECONDS_OPTIONS.includes(normalizedSeconds)) {
+    normalizedSeconds = SORA_DEFAULT_SECONDS;
+  }
+  store.seconds = normalizedSeconds;
+  if (Object.prototype.hasOwnProperty.call(store, 'sora_quality_mode')) {
+    delete store.sora_quality_mode;
+  }
+
+
+  if (analysis.mode === 'remix') {
+    if (analysis.remixEligible && analysis.remixEntry) {
+      const videoId = extractSoraVideoId(analysis.remixEntry);
+      if (videoId) {
+        store.remix_video_id = videoId;
       }
     } else {
-      candidates.push(rawUrl);
+      delete store.remix_video_id;
     }
+    delete store.input_reference;
+  } else if (analysis.mode === 'i2v') {
+    delete store.remix_video_id;
+  } else {
+    delete store.remix_video_id;
+    delete store.input_reference;
   }
-  for (const candidate of candidates) {
-    const normalized = String(candidate || '').trim();
-    if (normalized) return normalized;
+
+  return analysis;
+}
+
+function renderSoraControls(container, groupedMedia) {
+  const soraState = getSoraState();
+  const analysis = analyzeSoraMedia(groupedMedia);
+  soraState.mode = analysis.mode;
+  soraState.remixEligible = analysis.remixEligible;
+
+  if (analysis.mode === 'remix' && !analysis.remixEligible) {
+    const warning = document.createElement('div');
+    warning.className = 'kc-sora-warning';
+    warning.textContent = 'Sora生成動画のみリミックスできます';
+    container.append(warning);
   }
-  return '';
 }
 
 function applySelectedMediaToEngineInputs() {
@@ -2897,12 +1076,21 @@ function applySelectedMediaToEngineInputs() {
     }
     const autoMap = store.__autoMediaAssignments;
 
+    if (id === SORA_ENGINE_ID) {
+      updateSoraEngineInputs(store, { groupedMedia: grouped });
+    }
+
     Object.entries(paramsByType).forEach(([rawType, params]) => {
       if (!Array.isArray(params) || !params.length) return;
       const type = normalizeMediaGroupType(rawType);
       const list = grouped.get(type) || [];
       params.forEach((param, index) => {
         if (!param || !param.key) return;
+        if (id === SORA_ENGINE_ID && (param.key === 'input_reference' || param.key === 'inputReferences')) {
+          if (store[param.key]) delete store[param.key];
+          if (autoMap[param.key]) delete autoMap[param.key];
+          return;
+        }
         const targetEntry = list[index] || list[0];
         const key = param.key;
         if (targetEntry) {
@@ -2930,110 +1118,8 @@ function applySelectedMediaToEngineInputs() {
   });
 }
 
-function fallbackSlotLabel(type, key, index = 0) {
-  const baseLabel = MEDIA_TYPE_DISPLAY[type]?.label || type.toUpperCase();
-  const tokens = tokenizeKey(key);
-  const hasStartToken = tokens.some((token) => MEDIA_SLOT_START_TOKENS.includes(token));
-  const hasEndToken = tokens.some((token) => MEDIA_SLOT_END_TOKENS.includes(token));
-  const isVisualMedia = type === 'image' || type === 'video';
-  if (isVisualMedia) {
-    const startLabel = 'START';
-    const endLabel = 'END';
-    if (hasEndToken) return endLabel;
-    if (hasStartToken) return startLabel;
-    if (index === 0) return startLabel;
-    if (index === 1) return endLabel;
-  }
-  if (index > 0) {
-    return `${baseLabel} #${index + 1}`;
-  }
-  return baseLabel;
-}
-
-function formatSlotLabelForDisplay(rawLabel, slotType = '', index = 0, total = 0) {
-  const normalized = typeof rawLabel === 'string' ? rawLabel.trim() : '';
-  const slotUpper = normalized.toUpperCase();
-  if (slotUpper === 'START_IMAGE' || slotUpper === 'START_VIDEO' || slotUpper === 'START') {
-    return 'START';
-  }
-  if (slotUpper === 'END_IMAGE' || slotUpper === 'END_VIDEO' || slotUpper === 'END') {
-    return 'END';
-  }
-  if (!normalized && slotType) {
-    return slotType.toUpperCase();
-  }
-  if (!normalized && !slotType) {
-    return 'INPUT';
-  }
-  const visualTypes = new Set(['IMAGE', 'VIDEO']);
-  const typeUpper = slotType ? String(slotType).toUpperCase() : '';
-  if (visualTypes.has(slotUpper) || visualTypes.has(typeUpper)) {
-    if (total >= 2) {
-      if (index === 0) return 'START';
-      if (index === total - 1) return 'END';
-    }
-  }
-  const match = slotUpper.match(/^(IMAGE|VIDEO)\s*#(\d+)$/);
-  if (match && total >= 2) {
-    const number = Number(match[2]);
-    if (number === 1) return 'START';
-    if (number === 2 && total === 2) return 'END';
-    if (index === total - 1) return 'END';
-  }
-  return normalized || (slotType ? slotType.toUpperCase() : 'INPUT');
-}
-
-function sanitizeMediaEntryForPayload(entry, defaultType = '') {
-  if (!entry) return null;
-  const resolvedName = entry.name || extractFilename(entry.path || entry.url || '');
-  return {
-    path: entry.path || '',
-    url: entry.url || '',
-    name: resolvedName,
-    thumbUrl: entry.thumbUrl || '',
-    filterType: normalizeMediaGroupType(entry.filterType || entry.type || defaultType),
-    mime: entry.mime || '',
-    ext: entry.ext || ''
-  };
-}
-
-function buildMediaAssignmentsForEngine(meta, slotDefinitions, groupedMedia) {
-  const assignments = [];
-  if (!meta) return assignments;
-  const paramsByType = meta.mediaParams || {};
-  Object.entries(paramsByType).forEach(([rawType, params]) => {
-    if (!Array.isArray(params) || !params.length) return;
-    const type = normalizeMediaGroupType(rawType);
-    const entries = groupedMedia.get(type) || [];
-    const slots = slotDefinitions.get(type) || [];
-    params.forEach((param, index) => {
-      if (!param || !param.key) return;
-      const mediaEntry = entries[index] || entries[0];
-      if (!mediaEntry) return;
-      let slot = null;
-      if (slots.length) {
-        slot = slots.find((slotDef) => slotDef && slotDef.keys instanceof Set && slotDef.keys.has(param.key))
-          || slots[index]
-          || null;
-      }
-      const slotId = slot?.slotId || `${type}:${index}`;
-      const slotLabel = slot?.label || fallbackSlotLabel(type, param.key, index);
-      const slotIndex = Number.isFinite(slot?.index) ? slot.index : index;
-      const sanitizedMedia = sanitizeMediaEntryForPayload(mediaEntry, type);
-      if (!sanitizedMedia) return;
-      assignments.push({
-        slotId,
-        slotLabel,
-        slotIndex,
-        type,
-        paramKey: param.key,
-        required: Boolean(param.required),
-        media: sanitizedMedia
-      });
-    });
-  });
-  return assignments;
-}
+registerMediaSelectionListener(applySelectedMediaToEngineInputs);
+applySelectedMediaToEngineInputs();
 
 function formatParameterValue(value) {
   if (value === undefined || value === null) return '';
@@ -3057,66 +1143,6 @@ function formatParameterValue(value) {
   const text = toString(value) || '';
   if (text.length <= MAX_LENGTH) return text;
   return `${text.slice(0, MAX_LENGTH)}… (${text.length} chars)`;
-}
-
-function toggleMediaSelection(item) {
-  if (!item) return;
-
-  const slotDefinitions = computeMediaSlotDefinitions();
-  const targetType = resolveMediaEntryType(item);
-  const slotsForType = slotDefinitions.get(targetType) || [];
-  const baseLabel = MEDIA_TYPE_DISPLAY[targetType]?.label || targetType.toUpperCase();
-  const useSlotLayout = slotsForType.length > 1
-    || (slotsForType.length === 1 && slotsForType[0]?.label !== baseLabel);
-
-  if (useSlotLayout) {
-    const assignmentsData = getMediaSlotAssignments(slotDefinitions);
-    const activeSlotId = state.media.activeSlot;
-    const activeSlot = findSlotDefinitionById(slotDefinitions, activeSlotId);
-    if (activeSlot && activeSlot.type === targetType) {
-      const handled = assignMediaToSlot(activeSlot.slotId, item, {
-        slotDefinitions,
-        assignmentsData
-      });
-      if (handled) return;
-    }
-    const fallbackSlotId = findNextEmptySlotId(
-      slotDefinitions,
-      assignmentsData.assignments,
-      activeSlotId && activeSlot?.type === targetType ? activeSlotId : '',
-      targetType
-    );
-    if (fallbackSlotId) {
-      const handled = assignMediaToSlot(fallbackSlotId, item, {
-        slotDefinitions,
-        assignmentsData
-      });
-      if (handled) return;
-    }
-  }
-
-  if (!item.path) return;
-
-  const list = getSelectedMediaList().slice();
-  const index = list.findIndex((entry) => entry.path === item.path);
-  if (index >= 0) {
-    list.splice(index, 1);
-  } else {
-    const payload = createMediaSelectionPayload(item);
-    if (!payload) return;
-    list.push(payload);
-  }
-  setSelectedMediaList(list);
-}
-
-function clearMissingMediaSelections(validPaths = new Set()) {
-  const normalized = new Set([...validPaths].filter(Boolean));
-  const list = getSelectedMediaList();
-  if (!list.length) return;
-  const filtered = list.filter((entry) => normalized.has(entry.path));
-  if (filtered.length !== list.length) {
-    setSelectedMediaList(filtered);
-  }
 }
 
 function isJobTerminal(status) {
@@ -3304,6 +1330,7 @@ function convertEngineOutput(engineOutput, job = null, jobEngineSnapshot = null)
   ]);
   const sourceCategory = typeToken || '';
   const result = engineOutput.result || {};
+  const soraMeta = engineOutput.sora || result.sora || null;
   const savedFiles = Array.isArray(result.savedFiles) ? result.savedFiles : [];
   const logs = Array.isArray(result.logs) ? result.logs.map((entry) => String(entry || '')).filter(Boolean) : [];
   const statusHistory = Array.isArray(result.statusHistory)
@@ -3321,7 +1348,7 @@ function convertEngineOutput(engineOutput, job = null, jobEngineSnapshot = null)
   const rawJobMedia = Array.isArray(jobEngine?.media)
     ? jobEngine.media
     : [];
-  const primaryAssignments = rawAssignments
+  const primaryAssignmentsRaw = rawAssignments
     .map((assignment, idx) => {
       if (!assignment) return null;
       const sanitized = sanitizeMediaEntryForPayload(assignment.media || assignment, assignment.type || assignment.media?.filterType || '');
@@ -3329,7 +1356,11 @@ function convertEngineOutput(engineOutput, job = null, jobEngineSnapshot = null)
       const slotType = normalizeMediaGroupType(assignment.slotType || assignment.type || sanitized.filterType || '');
       const slotIndex = Number.isFinite(assignment.slotIndex) ? assignment.slotIndex : idx;
       const slotId = assignment.slotId || `${slotType}:${slotIndex}`;
-      const slotLabel = assignment.slotLabel || fallbackSlotLabel(slotType, assignment.paramKey || '', slotIndex);
+      const slotLabel = normalizeSlotLabel(assignment.slotLabel, {
+        type: slotType,
+        key: assignment.paramKey || '',
+        index: slotIndex
+      });
       return {
         slotId,
         slotLabel,
@@ -3341,14 +1372,19 @@ function convertEngineOutput(engineOutput, job = null, jobEngineSnapshot = null)
       };
     })
     .filter(Boolean);
-  const fallbackAssignments = (!primaryAssignments.length && rawJobMedia.length)
+  const primaryAssignments = normalizeAssignmentSlotLabels(primaryAssignmentsRaw);
+  const fallbackAssignmentsRaw = (!primaryAssignments.length && rawJobMedia.length)
     ? rawJobMedia.map((entry, idx) => {
         const sanitized = sanitizeMediaEntryForPayload(entry, entry.filterType || entry.type || '');
         if (!sanitized) return null;
         const slotType = normalizeMediaGroupType(entry.slotType || entry.filterType || entry.type || sanitized.filterType || '');
         const slotIndex = Number.isFinite(entry.slotIndex) ? entry.slotIndex : idx;
         const slotId = entry.slotId || `${slotType}:${slotIndex}`;
-        const slotLabel = entry.slotLabel || fallbackSlotLabel(slotType, entry.paramKey || '', slotIndex);
+        const slotLabel = normalizeSlotLabel(entry.slotLabel, {
+          type: slotType,
+          key: entry.paramKey || '',
+          index: slotIndex
+        });
         return {
           slotId,
           slotLabel,
@@ -3360,6 +1396,7 @@ function convertEngineOutput(engineOutput, job = null, jobEngineSnapshot = null)
         };
       }).filter(Boolean)
     : [];
+  const fallbackAssignments = normalizeAssignmentSlotLabels(fallbackAssignmentsRaw);
   const inputMedia = primaryAssignments.length ? primaryAssignments : fallbackAssignments;
   const parameterEntries = Object.entries(engineInputSnapshot)
     .filter(([key]) => key && !String(key).startsWith('__'))
@@ -3374,6 +1411,7 @@ function convertEngineOutput(engineOutput, job = null, jobEngineSnapshot = null)
     media: { ...assignment.media }
   }));
   const snapshotParameters = () => parameterEntries.map((entry) => ({ ...entry }));
+  const templateSnapshot = createTemplateContextSnapshot(state.currentRunTemplateContext || state.activeTemplateContext);
   const records = [];
 
   if (engineOutput.success && savedFiles.length) {
@@ -3389,7 +1427,7 @@ function convertEngineOutput(engineOutput, job = null, jobEngineSnapshot = null)
             path: saved?.fileName || saved?.filename || ''
           })
         : resolveMediaEntryType({ filterType: typeToken || '', type: typeToken || '' });
-      records.push({
+      const record = {
         label: metaInfo.label || result.label || engineId,
         engineId,
         status: result.status || 'COMPLETED',
@@ -3413,12 +1451,26 @@ function convertEngineOutput(engineOutput, job = null, jobEngineSnapshot = null)
         error: '',
         filterType: mediaType,
         inputMedia: snapshotInputMedia(),
-        inputParameters: snapshotParameters()
-      });
+        inputParameters: snapshotParameters(),
+        templateContext: templateSnapshot ? cloneTemplateContext(templateSnapshot) : null
+      };
+
+      if (soraMeta) {
+        record.sora = { ...soraMeta };
+        const videoId = soraMeta.videoId || record.requestId;
+        if (videoId) {
+          record.videoId = videoId;
+          if (record.savedFile && !record.savedFile.videoId) {
+            record.savedFile.videoId = videoId;
+          }
+        }
+      }
+
+      records.push(record);
     });
   } else {
     const fallbackType = resolveMediaEntryType({ filterType: typeToken || '', type: typeToken || '' });
-    records.push({
+    const record = {
       label: metaInfo.label || result.label || engineId,
       engineId,
       status: engineOutput.success ? (result.status || 'NO_RESULT') : 'ERROR',
@@ -3444,8 +1496,19 @@ function convertEngineOutput(engineOutput, job = null, jobEngineSnapshot = null)
         : (engineOutput.error || '不明なエラーが発生しました'),
       filterType: fallbackType,
       inputMedia: snapshotInputMedia(),
-      inputParameters: snapshotParameters()
-    });
+      inputParameters: snapshotParameters(),
+      templateContext: templateSnapshot ? cloneTemplateContext(templateSnapshot) : null
+    };
+
+    if (soraMeta) {
+      record.sora = { ...soraMeta };
+      const videoId = soraMeta.videoId || record.requestId;
+      if (videoId) {
+        record.videoId = videoId;
+      }
+    }
+
+    records.push(record);
   }
 
   return { category, records };
@@ -3481,6 +1544,16 @@ function integrateEngineOutput(job, engine) {
   });
   saveHistoryToStorage();
   renderHistory();
+
+  if (engine && (engine.id === SORA_ENGINE_ID || engine.serverId === SORA_ENGINE_ID)) {
+    const handleMediaReloadState = () => {
+      renderSelectionSummary();
+      renderCategories();
+    };
+    loadMediaLibrary({ force: true, fetchJson, onStateChange: handleMediaReloadState })
+      .catch((err) => console.warn('[Showcase] Sora media reload failed', err));
+  }
+
   return true;
 }
 
@@ -3519,6 +1592,7 @@ function finalizeCurrentJob(job) {
   state.currentRunResults = new Map();
   state.completedEngineKeys = new Set();
   state.currentHistoryEntryId = '';
+  state.currentRunTemplateContext = null;
   if (state.currentJobId === job.id) {
     state.currentJobId = '';
   }
@@ -3610,14 +1684,6 @@ function detectMediaFilterType(file) {
   return selectPrimaryMediaFilter(tags);
 }
 
-function knownTypesForCategory(category) {
-  const normalized = (category || '').toLowerCase();
-  if (!normalized || normalized === 'all') {
-    return ALL_TYPE_FILTERS;
-  }
-  return CATEGORY_TYPE_FILTERS[normalized] || ALL_TYPE_FILTERS;
-}
-
 function getTypeFilterOptions(category) {
   const normalized = (category || '').toLowerCase();
   const options = [{ id: 'all', label: 'ALL' }];
@@ -3663,7 +1729,7 @@ function templateMatchesCategory(template, activeCategory) {
     }
 
     const normalizedTokenForOther = normalizeTypeToken(normalizedTemplateCategory);
-    if (normalizedTokenForOther && CATEGORY_TYPE_FILTERS.other.includes(normalizedTokenForOther)) {
+    if (normalizedTokenForOther && knownTypesForCategory('other').includes(normalizedTokenForOther)) {
       return true;
     }
 
@@ -4081,14 +2147,21 @@ function getManualParameterOptions(engineMeta, paramKey, schema) {
   if (!hints) return [];
   const raw = hints[paramKey];
   if (!raw) return [];
-  let items;
+  let items = [];
   if (Array.isArray(raw)) {
     items = raw;
-  } else if (raw && typeof raw === 'object' && Array.isArray(raw.options)) {
-    items = raw.options;
-  } else {
+  } else if (raw && typeof raw === 'object') {
+    if (Array.isArray(raw.options)) {
+      items = raw.options;
+    } else if (Object.prototype.hasOwnProperty.call(raw, 'value')) {
+      items = [raw];
+    } else {
+      items = [];
+    }
+  } else if (raw || raw === 0) {
     items = [raw];
   }
+  if (!items.length) return [];
   return mergeManualParameterOptions([], items, schema);
 }
 
@@ -4102,34 +2175,6 @@ function getManualParameterDefault(engineMeta, paramKey, schema) {
   if (!raw || typeof raw !== 'object') return undefined;
   if (!Object.prototype.hasOwnProperty.call(raw, 'default')) return undefined;
   return normalizeOptionValue(schema, raw.default);
-}
-
-function cloneParameterDefault(value) {
-  if (Array.isArray(value)) {
-    return value.map((item) => cloneParameterDefault(item));
-  }
-  if (value && typeof value === 'object') {
-    const copy = {};
-    Object.keys(value).forEach((key) => {
-      copy[key] = cloneParameterDefault(value[key]);
-    });
-    return copy;
-  }
-  return value;
-}
-
-function getSchemaDefaultValue(schema) {
-  if (!schema) return undefined;
-  if (Object.prototype.hasOwnProperty.call(schema, 'default')) {
-    return schema.default;
-  }
-  if (Object.prototype.hasOwnProperty.call(schema, 'const')) {
-    return schema.const;
-  }
-  if (Array.isArray(schema.enum) && schema.enum.length === 1) {
-    return schema.enum[0];
-  }
-  return undefined;
 }
 
 function sanitizeDefaultToken(token) {
@@ -4217,20 +2262,6 @@ function deriveParameterDefault(engineMeta, paramKey, schema, options) {
   }
 
   return undefined;
-}
-
-function ensureParameterDefaults(submitParams, store) {
-  if (!submitParams || !submitParams.properties || !store) return;
-  Object.entries(submitParams.properties).forEach(([key, schema]) => {
-    const defaultValue = getSchemaDefaultValue(schema);
-    if (defaultValue === undefined) {
-      return;
-    }
-    const current = store[key];
-    if (current === undefined || current === null || (typeof current === 'string' && current === '')) {
-      store[key] = cloneParameterDefault(defaultValue);
-    }
-  });
 }
 
 function containsCjkCharacters(text) {
@@ -4377,6 +2408,42 @@ function syncPromptPreview() {
   updatePromptGeneratorControls();
 }
 
+function syncTemplatePreviewUi() {
+  const preview = document.getElementById('kc-template-preview');
+  const nameEl = document.getElementById('kc-template-preview-name');
+  const memoEl = document.getElementById('kc-template-preview-memo');
+  const resetBtn = document.getElementById('kc-template-reset');
+  if (!preview || !nameEl || !memoEl || !resetBtn) return;
+
+  const context = state.activeTemplateContext;
+  const hasOverrides = Boolean(context?.overrides?.prompt
+    || context?.overrides?.filePrefix
+    || context?.overrides?.soundText);
+
+  if (context) {
+    preview.hidden = false;
+    preview.classList.toggle('is-overridden', hasOverrides);
+    nameEl.textContent = context.name || '';
+    nameEl.hidden = !context.name;
+    if (context.memo) {
+      memoEl.textContent = context.memo;
+      memoEl.hidden = false;
+    } else {
+      memoEl.textContent = '';
+      memoEl.hidden = true;
+    }
+    resetBtn.disabled = false;
+    resetBtn.removeAttribute('aria-disabled');
+  } else {
+    preview.hidden = true;
+    preview.classList.remove('is-overridden');
+    nameEl.textContent = '';
+    memoEl.textContent = '';
+    resetBtn.disabled = true;
+    resetBtn.setAttribute('aria-disabled', 'true');
+  }
+}
+
 function getSelectedSoundEngines() {
   const list = [];
   if (!(state.selected instanceof Map)) return list;
@@ -4452,6 +2519,7 @@ function syncSoundTextField({ preferExisting = true } = {}) {
 
   if (state.soundText !== nextValue) {
     state.soundText = nextValue;
+    updateActiveTemplateOverrides();
   }
 
   input.placeholder = SOUND_TEXT_PLACEHOLDER;
@@ -6437,6 +4505,7 @@ function applyPromptSuggestion(index) {
     syncSoundTextField({ preferExisting: false });
   }
   setPromptGeneratorPanelVisible(false);
+  updateActiveTemplateOverrides();
   syncPromptPreview();
   updateRunButtonState();
   updatePromptGeneratorControls();
@@ -6452,7 +4521,10 @@ function addPromptSuggestionToTemplate(index) {
   const entry = suggestions[index];
   if (!entry || !entry.prompt) return;
   const templateData = (entry.template && typeof entry.template === 'object') ? entry.template : {};
-  const memoFallback = templateData.memo || entry.translation || entry.description || '';
+  const translationText = typeof entry.translation === 'string' ? entry.translation.trim() : '';
+  const templateMemo = typeof templateData.memo === 'string' ? templateData.memo.trim() : '';
+  const descriptionText = typeof entry.description === 'string' ? entry.description.trim() : '';
+  const memoFallback = translationText || templateMemo || descriptionText;
   addTemplateFromPrompt({
     prompt: entry.prompt,
     name: templateData.name,
@@ -6645,16 +4717,17 @@ function syncFailureToggle() {
   });
 }
 
-function setFilePrefix(value, { persist = true } = {}) {
+function setFilePrefix(value, { persist = true, skipTemplateOverride = false } = {}) {
   const next = typeof value === 'string' ? value.trim() : '';
   state.filePrefix = next;
   syncFilePrefixField();
+  if (!skipTemplateOverride) {
+    updateActiveTemplateOverrides();
+  }
   if (persist) {
-    try {
-      localStorage.setItem(FILE_PREFIX_STORAGE_KEY, next);
-    } catch (err) {
-      console.warn('[Showcase] failed to persist file prefix', err);
-    }
+    preferenceStorage.writeString(FILE_PREFIX_STORAGE_KEY, next, {
+      label: 'failed to persist file prefix'
+    });
   }
 }
 
@@ -6723,6 +4796,40 @@ function attachPromptResizeHandlers(field) {
   field.dataset.resizeHandlersAttached = 'true';
 }
 
+function getEngineCountForCategory(categoryId) {
+  const normalized = normalizeCategory(categoryId);
+  if (normalized === ALL_CATEGORY_ID) {
+    if (state.engineIndex instanceof Map && state.engineIndex.size > 0) {
+      return state.engineIndex.size;
+    }
+    const aggregated = state.enginesByCategory.get(ALL_CATEGORY_ID);
+    if (Array.isArray(aggregated)) {
+      return aggregated.length;
+    }
+    let total = 0;
+    state.enginesByCategory.forEach((list, key) => {
+      if (key === ALL_CATEGORY_ID) return;
+      if (Array.isArray(list)) total += list.length;
+    });
+    return total;
+  }
+  if (state.engineIndex instanceof Map && state.engineIndex.size > 0) {
+    let count = 0;
+    state.engineIndex.forEach((meta) => {
+      const metaCategory = normalizeCategory(meta?.category || meta?.sourceCategory || '');
+      if (metaCategory === normalized) {
+        count += 1;
+      }
+    });
+    return count;
+  }
+  const payload = state.enginesByCategory.get(normalized);
+  if (Array.isArray(payload)) {
+    return payload.length;
+  }
+  return 0;
+}
+
 function renderEngineTabs() {
   const container = document.getElementById('kc-engine-tabs');
   if (!container) return;
@@ -6741,8 +4848,24 @@ function renderEngineTabs() {
     if (isActive) {
       tab.classList.add('is-active');
     }
-    tab.textContent = String(category.label || categoryLabel(category.id)).toUpperCase();
+    const labelText = String(category.label || categoryLabel(category.id)).toUpperCase();
+    const countValue = getEngineCountForCategory(category.id);
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'kc-panel-tab__label';
+    labelSpan.textContent = labelText;
+    tab.append(labelSpan);
+    if (Number.isFinite(countValue)) {
+      const countSpan = document.createElement('span');
+      countSpan.className = 'kc-panel-tab__count';
+      countSpan.textContent = countValue.toLocaleString('ja-JP');
+      tab.append(countSpan);
+    }
     tab.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    if (Number.isFinite(countValue)) {
+      tab.setAttribute('aria-label', `${labelText} (${countValue.toLocaleString('ja-JP')} MCP)`);
+    } else {
+      tab.setAttribute('aria-label', labelText);
+    }
     tab.addEventListener('click', () => {
       if (state.activeEngineCategory !== category.id) {
         setActiveEngineCategory(category.id);
@@ -6772,6 +4895,12 @@ function renderEngineSubTabs() {
     const tab = document.createElement('button');
     tab.type = 'button';
     tab.className = 'kc-panel-tab kc-panel-tab--sub';
+    if (info.id === 'media') {
+      tab.classList.add('kc-panel-tab--input');
+    } else if (info.id === 'engine') {
+      tab.classList.add('kc-panel-tab--mcp');
+    }
+    tab.setAttribute('data-tab-id', info.id);
     if (state.categoryTabs[activeCategory] === info.id) {
       tab.classList.add('is-active');
     }
@@ -6780,7 +4909,8 @@ function renderEngineSubTabs() {
       if (state.categoryTabs[activeCategory] === info.id) return;
       state.categoryTabs[activeCategory] = info.id;
       if (info.id === 'media' && state.media.items.length === 0 && !state.media.isLoading) {
-        loadMediaLibrary().catch((err) => console.error('[Showcase] media load failed', err));
+        loadMediaLibrary({ fetchJson, onStateChange: renderCategories })
+          .catch((err) => console.error('[Showcase] media load failed', err));
       } else {
         renderCategories();
       }
@@ -6814,63 +4944,6 @@ function updateEngineTabVisibility() {
       controls.style.display = (showMain || showSub) ? 'flex' : 'none';
     }
   }
-}
-
-function determineEngineTypeKey(engine, allowedTypes = null) {
-  if (!engine) return 'other';
-  const token = resolveTypePrefix([
-    engine.sourceCategory,
-    extractEnginePrefix(engine.id),
-    extractEnginePrefix(engine.label),
-    engine.category
-  ]);
-  let key = token ? token.toLowerCase() : 'other';
-  if (allowedTypes && allowedTypes.size && key !== 'other' && !allowedTypes.has(key)) {
-    key = 'other';
-  }
-  if (!key) return 'other';
-  return key;
-}
-
-function getEnginesInCategory(categoryId) {
-  const normalized = normalizeCategory(categoryId);
-  const payload = state.enginesByCategory.get(normalized);
-  if (Array.isArray(payload)) {
-    return payload;
-  }
-  if (normalized === ALL_CATEGORY_ID) {
-    const aggregated = state.enginesByCategory.get(ALL_CATEGORY_ID);
-    return Array.isArray(aggregated) ? aggregated : [];
-  }
-  return [];
-}
-
-function engineMatchesSearch(engine, tokens) {
-  if (!tokens || !tokens.length) return true;
-  if (!engine || typeof engine !== 'object') return false;
-  const baseLabels = [engine.displayLabel, engine.label, engine.id]
-    .filter((value) => typeof value === 'string' && value.trim().length)
-    .map((value) => value.trim().toLowerCase());
-  if (!baseLabels.length) return false;
-  return tokens.every((token) => {
-    const normalized = token.toLowerCase();
-    return baseLabels.some((label) => label.includes(normalized));
-  });
-}
-
-function filterEnginesByKeyword(list, keyword) {
-  if (!Array.isArray(list) || !list.length) {
-    return [];
-  }
-  const normalized = typeof keyword === 'string' ? keyword.trim().toLowerCase() : '';
-  if (!normalized) {
-    return list.slice();
-  }
-  const tokens = normalized.split(/\s+/).filter(Boolean);
-  if (!tokens.length) {
-    return list.slice();
-  }
-  return list.filter((engine) => engineMatchesSearch(engine, tokens));
 }
 
 function createEngineSearchControls() {
@@ -6937,7 +5010,6 @@ function selectEnginesInCategory(categoryId) {
       requiredSoundTextKeys: Array.isArray(engine.requiredSoundTextKeys)
         ? engine.requiredSoundTextKeys.slice()
         : [],
-      documentationUrl: engine.documentationUrl || '',
       docSummaryEn: engine.docSummaryEn || '',
       docSummaryJa: engine.docSummaryJa || ''
     });
@@ -6949,33 +5021,146 @@ function selectEnginesInCategory(categoryId) {
   return changed;
 }
 
-function getSelectedEnginesForCategory(categoryId) {
-  const normalized = normalizeCategory(categoryId);
-  const entries = [];
-  state.selected.forEach((value, id) => {
-    const meta = state.engineIndex.get(id) || value || {};
-    const rawCategory = meta.category || value?.category;
-    const engineCategory = normalizeCategory(rawCategory || DEFAULT_ACTIVE_CATEGORY);
-    if (normalized === ALL_CATEGORY_ID || engineCategory === normalized) {
-      entries.push({ id, meta });
-    }
-  });
-  return entries;
+function normalizeEngineTypeFilterValue(value) {
+  if (value === undefined || value === null) return '';
+  const token = String(value).trim().toLowerCase();
+  if (!token || token === 'all') return '';
+  if (token === 'other') return 'other';
+  return normalizeTypeToken(token) || '';
 }
 
-function clearEnginesInCategory(categoryId) {
-  const targets = getSelectedEnginesForCategory(categoryId);
-  if (!targets.length) return false;
-  targets.forEach(({ id }) => {
-    state.selected.delete(id);
+function sanitizeEngineTypeFilterValues(values, categoryId) {
+  const normalizedCategory = normalizeCategory(categoryId);
+  const allowed = new Set(knownTypesForCategory(normalizedCategory));
+  const source = values instanceof Set
+    ? values
+    : (Array.isArray(values) ? new Set(values) : new Set(values ? [values] : []));
+  const result = new Set();
+  source.forEach((value) => {
+    const normalized = normalizeEngineTypeFilterValue(value);
+    if (!normalized) return;
+    if (normalized !== 'other' && !allowed.has(normalized)) return;
+    result.add(normalized);
   });
+  return result;
+}
+
+function areSetsEqual(left, right) {
+  if (left === right) return true;
+  if (!(left instanceof Set) || !(right instanceof Set)) return false;
+  if (left.size !== right.size) return false;
+  for (const entry of left) {
+    if (!right.has(entry)) return false;
+  }
   return true;
+}
+
+function getEngineTypeFilterSet(categoryId = state.activeEngineCategory) {
+  const normalizedCategory = normalizeCategory(categoryId);
+  const storage = state.engineTypeFilters;
+  let rawValues = null;
+  if (storage instanceof Map) {
+    rawValues = storage.get(normalizedCategory) || null;
+  } else if (storage && typeof storage === 'object' && Object.prototype.hasOwnProperty.call(storage, normalizedCategory)) {
+    const candidate = storage[normalizedCategory];
+    if (candidate instanceof Set) {
+      rawValues = candidate;
+    } else if (Array.isArray(candidate)) {
+      rawValues = candidate;
+    }
+  }
+  const sanitized = sanitizeEngineTypeFilterValues(rawValues, normalizedCategory);
+  if (storage instanceof Map) {
+    const previous = storage.get(normalizedCategory);
+    if (!sanitized.size) {
+      if (previous) storage.delete(normalizedCategory);
+    } else if (!areSetsEqual(previous, sanitized)) {
+      storage.set(normalizedCategory, sanitized);
+    }
+  } else {
+    if (!state.engineTypeFilters || typeof state.engineTypeFilters !== 'object') {
+      state.engineTypeFilters = {};
+    }
+    if (sanitized.size) {
+      state.engineTypeFilters[normalizedCategory] = Array.from(sanitized);
+    } else {
+      delete state.engineTypeFilters[normalizedCategory];
+    }
+  }
+  return sanitized;
+}
+
+function setEngineTypeFilterSet(categoryId, nextValues) {
+  const normalizedCategory = normalizeCategory(categoryId);
+  const sanitized = sanitizeEngineTypeFilterValues(nextValues, normalizedCategory);
+  const storage = state.engineTypeFilters;
+  if (storage instanceof Map) {
+    const previous = storage.get(normalizedCategory);
+    if (!sanitized.size) {
+      if (!previous || previous.size === 0) return false;
+      storage.delete(normalizedCategory);
+      return true;
+    }
+    if (areSetsEqual(previous, sanitized)) return false;
+    storage.set(normalizedCategory, sanitized);
+    return true;
+  }
+  if (!state.engineTypeFilters || typeof state.engineTypeFilters !== 'object') {
+    state.engineTypeFilters = {};
+  }
+  const previous = state.engineTypeFilters[normalizedCategory];
+  if (!sanitized.size) {
+    if (!previous || (Array.isArray(previous) && previous.length === 0)) return false;
+    delete state.engineTypeFilters[normalizedCategory];
+    return true;
+  }
+  const nextArray = Array.from(sanitized);
+  if (Array.isArray(previous)
+    && previous.length === nextArray.length
+    && previous.every((item) => nextArray.includes(item))) {
+    return false;
+  }
+  state.engineTypeFilters[normalizedCategory] = nextArray;
+  return true;
+}
+
+function toggleEngineTypeFilter(typeKey, categoryId = state.activeEngineCategory) {
+  const normalizedCategory = normalizeCategory(categoryId);
+  const normalizedKey = normalizeEngineTypeFilterValue(typeKey);
+  if (!normalizedKey) return false;
+  const allowed = new Set(knownTypesForCategory(normalizedCategory));
+  if (normalizedKey !== 'other' && !allowed.has(normalizedKey)) {
+    return false;
+  }
+  const current = getEngineTypeFilterSet(normalizedCategory);
+  if (current.has(normalizedKey)) {
+    current.delete(normalizedKey);
+  } else {
+    current.add(normalizedKey);
+  }
+  return setEngineTypeFilterSet(normalizedCategory, current);
+}
+
+function clearEngineTypeFilters(categoryId = state.activeEngineCategory) {
+  return setEngineTypeFilterSet(categoryId, new Set());
+}
+
+function rerenderCategoriesPreservingScroll() {
+  const enginesContainer = document.getElementById('kc-engines');
+  const previousScrollTop = enginesContainer ? enginesContainer.scrollTop : 0;
+  renderCategories();
+  if (enginesContainer) {
+    requestAnimationFrame(() => {
+      enginesContainer.scrollTop = previousScrollTop;
+    });
+  }
 }
 
 function renderEngineStats({
   isLoading = false,
   engines = [],
   filteredEngines = null,
+  visibleEngines = null,
   categoryId = state.activeEngineCategory,
   searchKeyword = state.engineSearchKeyword,
   visible = true
@@ -6995,140 +5180,163 @@ function renderEngineStats({
   container.append(statsWrap);
 
   if (isLoading) {
-    statsWrap.textContent = '読み込み中…';
+    const loading = document.createElement('span');
+    loading.className = 'kc-engine-stats__loading';
+    loading.textContent = 'MCP一覧を更新中...';
+    statsWrap.append(loading);
     return;
   }
 
   const baseList = Array.isArray(engines) ? engines : [];
+  const labelHost = document.getElementById('kc-engine-toolbar-label');
+  const applyToolbarCount = (total, visible, filtersActive) => {
+    if (!labelHost) return;
+    labelHost.textContent = 'MCP';
+    labelHost.removeAttribute('aria-label');
+    if (!Number.isFinite(total)) return;
+    const badge = document.createElement('span');
+    badge.className = 'kc-engine-toolbar__count';
+    const totalLabel = total.toLocaleString('ja-JP');
+    const visibleLabel = Number.isFinite(visible) ? visible.toLocaleString('ja-JP') : totalLabel;
+    badge.textContent = filtersActive && Number.isFinite(visible)
+      ? `${visibleLabel}/${totalLabel}`
+      : totalLabel;
+    labelHost.appendChild(badge);
+    const ariaParts = ['MCP'];
+    const summaryText = filtersActive && Number.isFinite(visible)
+      ? `表示中 ${visibleLabel} 件 / 全 ${totalLabel} 件`
+      : `全 ${totalLabel} 件`;
+    ariaParts.push(summaryText);
+    const ariaLabel = ariaParts.join(' ');
+    labelHost.setAttribute('aria-label', ariaLabel);
+    labelHost.title = summaryText;
+  };
+
+  const totalCount = baseList.length;
+
   if (!baseList.length) {
+    applyToolbarCount(totalCount, 0, false);
     const empty = document.createElement('span');
     empty.className = 'kc-engine-stat__total';
     empty.textContent = 'MCP数: 0';
     statsWrap.append(empty);
     return;
   }
+  statsWrap.innerHTML = '';
 
   const displayList = Array.isArray(filteredEngines)
     ? filteredEngines
     : baseList;
 
   const normalizedCategory = normalizeCategory(categoryId);
+  const activeTypeFilters = getEngineTypeFilterSet(normalizedCategory);
+  const hasActiveTypeFilters = activeTypeFilters.size > 0;
+  const visibleList = Array.isArray(visibleEngines) ? visibleEngines : displayList;
+  const visibleCount = visibleList.length;
+  applyToolbarCount(totalCount, visibleCount, hasActiveTypeFilters);
+
   const allowedTypes = new Set(knownTypesForCategory(normalizedCategory));
   const counts = new Map();
 
   displayList.forEach((engine) => {
     const key = determineEngineTypeKey(engine, allowedTypes);
+    const normalizedKey = normalizeEngineTypeFilterValue(key) || 'other';
     const isSelected = engine && state.selected.has(engine.id);
-    const existing = counts.get(key);
-    if (existing) {
-      existing.count += 1;
-      if (isSelected) existing.selected += 1;
+    const entry = counts.get(normalizedKey);
+    if (entry) {
+      entry.count += 1;
+      if (isSelected) entry.selected += 1;
     } else {
-      counts.set(key, {
-        key,
-        label: key === 'other' ? 'OTHER' : key.toUpperCase(),
+      counts.set(normalizedKey, {
+        key: normalizedKey,
+        label: normalizedKey === 'other' ? 'OTHER' : normalizedKey.toUpperCase(),
         count: 1,
         selected: isSelected ? 1 : 0
       });
     }
   });
 
-  const fragment = document.createDocumentFragment();
-  const selectedInCategory = getSelectedEnginesForCategory(normalizedCategory);
-  const selectedCount = selectedInCategory.length;
-  const totalEnginesInCategory = baseList.length;
-  const visibleCount = displayList.length;
-  const hasSelection = selectedCount > 0;
-  const allSelected = totalEnginesInCategory > 0 && selectedCount === totalEnginesInCategory;
-  const hasPartialSelection = hasSelection && !allSelected;
-
-  const allTag = document.createElement('span');
-  allTag.className = 'kc-engine-stat__tag kc-engine-stat__tag--all';
-  allTag.textContent = 'ALL';
-  allTag.classList.toggle('is-active', allSelected);
-  allTag.classList.toggle('is-partial', hasPartialSelection);
-  allTag.setAttribute('role', 'button');
-  allTag.setAttribute('tabindex', '0');
-  const ariaPressed = allSelected ? 'true' : (hasPartialSelection ? 'mixed' : 'false');
-  allTag.setAttribute('aria-pressed', ariaPressed);
-
-  if (allSelected) {
-    applyBadgeTheme(allTag, normalizedCategory || ALL_CATEGORY_ID, {
-      fallbackCategory: normalizedCategory || ALL_CATEGORY_ID
-    });
-    allTag.classList.add('kc-engine-stat__tag--themed');
-  } else {
-    clearBadgeTheme(allTag);
-    allTag.classList.remove('kc-engine-stat__tag--themed');
-  }
-  const handleAllToggle = (evt) => {
-    evt.preventDefault();
-    const enginesContainer = document.getElementById('kc-engines');
-    const previousScrollTop = enginesContainer ? enginesContainer.scrollTop : 0;
-    const changed = allSelected
-      ? clearEnginesInCategory(normalizedCategory)
-      : selectEnginesInCategory(normalizedCategory);
-    if (!changed) return;
-    renderCategories();
-    if (enginesContainer) {
-      requestAnimationFrame(() => {
-        enginesContainer.scrollTop = previousScrollTop;
-      });
-    }
-    updateRunButtonState();
-  };
-  allTag.addEventListener('click', handleAllToggle);
-  allTag.addEventListener('keydown', (evt) => {
-    if (evt.key === 'Enter' || evt.key === ' ') {
-      evt.preventDefault();
-      handleAllToggle(evt);
-    }
-  });
-  fragment.append(allTag);
-
-  Array.from(counts.values())
-    .sort((a, b) => a.label.localeCompare(b.label))
-    .forEach((bucket) => {
-      const tag = document.createElement('span');
-      tag.className = 'kc-engine-stat__tag';
-      const isActive = bucket.selected > 0;
-      tag.setAttribute('role', 'button');
-      tag.setAttribute('tabindex', '0');
-      tag.classList.toggle('is-active', isActive);
-      tag.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-
-      if (isActive) {
-        applyBadgeTheme(tag, bucket.key, { fallbackCategory: normalizedCategory });
-        tag.classList.add('kc-engine-stat__tag--themed');
-      } else {
-        clearBadgeTheme(tag);
-        tag.classList.remove('kc-engine-stat__tag--themed');
+  if (hasActiveTypeFilters) {
+    activeTypeFilters.forEach((token) => {
+      if (!counts.has(token)) {
+        counts.set(token, {
+          key: token,
+          label: token === 'other' ? 'OTHER' : token.toUpperCase(),
+          count: 0,
+          selected: 0
+        });
       }
-
-      const label = document.createElement('span');
-      label.className = 'kc-engine-stat__label';
-      label.textContent = bucket.label;
-
-      const value = document.createElement('span');
-      value.className = 'kc-engine-stat__value';
-      value.textContent = bucket.count;
-
-      tag.append(label, value);
-      const handleToggle = (evt) => {
-        evt.preventDefault();
-        toggleEnginesByType(bucket.key, normalizedCategory);
-      };
-      tag.addEventListener('click', handleToggle);
-      tag.addEventListener('keydown', (evt) => {
-        if (evt.key === 'Enter' || evt.key === ' ') {
-          evt.preventDefault();
-          handleToggle(evt);
-        }
-      });
-      fragment.append(tag);
     });
+  }
 
-  statsWrap.append(fragment);
+  if (!counts.size) {
+    const empty = document.createElement('span');
+    empty.className = 'kc-engine-stat__total';
+    empty.textContent = hasActiveTypeFilters
+      ? `表示中：${visibleCount.toLocaleString('ja-JP')}件`
+      : 'タイプ統計なし';
+    statsWrap.append(empty);
+  } else {
+    const fragment = document.createDocumentFragment();
+    Array.from(counts.values())
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .forEach((bucket) => {
+        const tag = document.createElement('span');
+        tag.className = 'kc-engine-stat__tag';
+        const isFiltered = activeTypeFilters.has(bucket.key);
+        const hasSelectionInType = bucket.selected > 0;
+        tag.classList.toggle('is-active', isFiltered);
+        tag.classList.toggle('has-selection', hasSelectionInType);
+        tag.setAttribute('role', 'button');
+        tag.setAttribute('tabindex', '0');
+        tag.setAttribute('aria-pressed', isFiltered ? 'true' : 'false');
+
+        if (isFiltered || hasSelectionInType) {
+          applyBadgeTheme(tag, bucket.key, { fallbackCategory: normalizedCategory });
+          tag.classList.add('kc-engine-stat__tag--themed');
+        } else {
+          clearBadgeTheme(tag);
+          tag.classList.remove('kc-engine-stat__tag--themed');
+        }
+
+        const label = document.createElement('span');
+        label.className = 'kc-engine-stat__label';
+        label.textContent = bucket.label;
+
+        const value = document.createElement('span');
+        value.className = 'kc-engine-stat__value kc-engine-stat__value--accent';
+        value.textContent = bucket.count.toLocaleString('ja-JP');
+
+        tag.append(label, value);
+
+        const summaryParts = [`${bucket.label}: ${bucket.count}件`];
+        if (bucket.selected > 0) {
+          summaryParts.push(`選択中: ${bucket.selected}件`);
+        }
+        if (isFiltered) {
+          summaryParts.push('フィルタ適用中');
+        }
+        tag.setAttribute('aria-label', summaryParts.join(' / '));
+        tag.title = isFiltered
+          ? `${bucket.label}タイプのフィルタを解除`
+          : `${bucket.label}タイプでフィルタ`;
+
+        const handleToggle = (evt) => {
+          evt.preventDefault();
+          if (!toggleEngineTypeFilter(bucket.key, normalizedCategory)) return;
+          rerenderCategoriesPreservingScroll();
+        };
+        tag.addEventListener('click', handleToggle);
+        tag.addEventListener('keydown', (evt) => {
+          if (evt.key === 'Enter' || evt.key === ' ') {
+            evt.preventDefault();
+            handleToggle(evt);
+          }
+        });
+        fragment.append(tag);
+      });
+    statsWrap.append(fragment);
+  }
 }
 
 function renderSelectionSummary() {
@@ -7151,14 +5359,9 @@ function renderSelectionSummary() {
   syncSoundTextField();
 
   if (metrics) {
-    const totalEngines = state.engineIndex.size || 0;
     const selectedLabel = selectedEngines.length.toLocaleString('ja-JP');
-    const totalLabel = totalEngines.toLocaleString('ja-JP');
-    metrics.innerHTML = [
-      `<span class="kc-selection-summary__metrics-current">選択中MCP <strong>${selectedLabel}</strong></span>`,
-      `<span class="kc-selection-summary__metrics-total">&nbsp;/ 合計 <strong>${totalLabel}</strong></span>`
-    ].join('');
-    metrics.setAttribute('aria-label', `選択中MCP ${selectedLabel} 件 / 合計 ${totalLabel} 件`);
+    metrics.innerHTML = `<span class="kc-selection-summary__metrics-current">選択中のMCP <strong>${selectedLabel}</strong></span>`;
+    metrics.setAttribute('aria-label', `選択中のMCP ${selectedLabel} 件`);
   }
 
   const buildActionButton = (label, title, handler, disabled = false) => {
@@ -7218,6 +5421,17 @@ function renderSelectionSummary() {
   groupsRoot.className = 'kc-selection-media-groups';
   let groupsRendered = 0;
 
+  const hasSoraSelected = selectedEngines.some((entry) => entry.id === SORA_ENGINE_ID);
+  if (mediaActions) {
+    if (hasSoraSelected) {
+      renderSoraControls(mediaActions, groupedMedia);
+    } else {
+      const soraState = getSoraState();
+      soraState.mode = 't2v';
+      soraState.remixEligible = false;
+    }
+  }
+
   const createTile = (item, order, typeLabel, globalIndex) => {
     const tile = document.createElement('div');
     tile.className = 'kc-selection-media-tile';
@@ -7253,19 +5467,19 @@ function renderSelectionSummary() {
 
     if (item.filterType === 'video' && item.url) {
       const video = document.createElement('video');
-      video.src = item.url;
+      applyAssetSrcWithFallback(video, item.url, { type: 'video' });
       if (item.thumbUrl) {
         video.poster = item.thumbUrl;
       }
       appendVideoPreview(video);
     } else if (item.thumbUrl) {
       const img = document.createElement('img');
-      img.src = item.thumbUrl;
+      applyAssetSrcWithFallback(img, item.thumbUrl);
       img.alt = item.name || item.path;
       thumbWrap.append(img);
     } else if (item.url && item.filterType === 'image') {
       const img = document.createElement('img');
-      img.src = item.url;
+      applyAssetSrcWithFallback(img, item.url);
       img.alt = item.name || item.path;
       img.loading = 'lazy';
       thumbWrap.append(img);
@@ -7307,7 +5521,7 @@ function renderSelectionSummary() {
     const items = groupedMedia.get(type) || [];
     const slots = slotDefinitions.get(type) || [];
     const baseLabel = MEDIA_TYPE_DISPLAY[type]?.label || type.toUpperCase();
-    const useSlotLayout = slots.length > 1 || (slots.length === 1 && slots[0]?.label !== baseLabel);
+    const useSlotLayout = shouldUseMediaSlotLayout(type, slots);
     const paramMeta = collectMediaParameterMetaForType(selectedEngines, type);
     const extras = slotAssignmentsData.extrasByType.get(type) || [];
 
@@ -7493,76 +5707,9 @@ function renderSelectionSummary() {
 
   refreshPromptGeneratorDefaults();
   updatePromptGeneratorControls();
+  scheduleShowcaseLayoutSync();
 }
 
-
-function toggleEnginesByType(typeKey, categoryId = state.activeEngineCategory) {
-  const normalizedCategory = normalizeCategory(categoryId);
-  let activeList = getEnginesInCategory(normalizedCategory);
-  const keyword = state.engineSearchKeyword.trim();
-  if (keyword) {
-    activeList = filterEnginesByKeyword(activeList, keyword);
-  }
-
-  if (!activeList.length) return;
-
-  const allowedTypes = new Set(knownTypesForCategory(normalizedCategory));
-  const targetKey = (typeKey || '').toString().toLowerCase();
-  const matchingEngines = activeList.filter((engine) => {
-    const key = determineEngineTypeKey(engine, allowedTypes);
-    if (targetKey === 'other') {
-      return key === 'other';
-    }
-    return key === targetKey;
-  });
-
-  if (!matchingEngines.length) return;
-
-  const hasUnselected = matchingEngines.some((engine) => !state.selected.has(engine.id));
-  const enginesContainer = document.getElementById('kc-engines');
-  const previousScrollTop = enginesContainer ? enginesContainer.scrollTop : 0;
-
-  matchingEngines.forEach((engine) => {
-    if (!engine || !engine.id) return;
-    if (hasUnselected) {
-      if (state.selected.has(engine.id)) return;
-      ensureEngineInputs(engine);
-      state.selected.set(engine.id, {
-        id: engine.id,
-        label: engine.displayLabel || engine.label || deriveEngineLabel(engine.id),
-        category: engine.category || normalizedCategory,
-        requiresMedia: Boolean(engine.requiresMedia),
-        requiredMediaTypes: Array.isArray(engine.requiredMediaTypes)
-          ? engine.requiredMediaTypes.slice()
-          : [],
-        requiresPrompt: engineRequiresPrompt(engine),
-        requiresSoundText: engineRequiresSoundText(engine),
-        promptKey: engine.promptKey || getPromptKey(engine),
-        soundTextKeys: Array.isArray(engine.soundTextKeys) ? engine.soundTextKeys.slice() : [],
-        requiredSoundTextKeys: Array.isArray(engine.requiredSoundTextKeys)
-          ? engine.requiredSoundTextKeys.slice()
-          : [],
-        documentationUrl: engine.documentationUrl || '',
-        docSummaryEn: engine.docSummaryEn || '',
-        docSummaryJa: engine.docSummaryJa || ''
-      });
-    } else {
-      state.selected.delete(engine.id);
-    }
-  });
-
-  if (hasUnselected) {
-    applySelectedMediaToEngineInputs();
-  }
-
-  renderCategories();
-  if (enginesContainer) {
-    requestAnimationFrame(() => {
-      enginesContainer.scrollTop = previousScrollTop;
-    });
-  }
-  updateRunButtonState();
-}
 
 function setActiveEngineCategory(category, options = {}) {
   const { skipHistorySync = false, skipEngineLoad = false } = options;
@@ -7585,7 +5732,8 @@ function setActiveEngineCategory(category, options = {}) {
   if (state.categoryTabs[cat] === 'media'
     && state.media.items.length === 0
     && !state.media.isLoading) {
-    loadMediaLibrary().catch((err) => console.error('[Showcase] media load failed', err));
+    loadMediaLibrary({ fetchJson, onStateChange: renderCategories })
+      .catch((err) => console.error('[Showcase] media load failed', err));
   }
   if (changed) {
     const resultsContainer = document.getElementById('kc-results');
@@ -7594,57 +5742,6 @@ function setActiveEngineCategory(category, options = {}) {
   if (!skipHistorySync) {
     renderHistory();
   }
-}
-
-function buildEngineOrderMap(categoryId) {
-  const map = new Map();
-  const normalized = normalizeCategory(categoryId);
-  const primaryList = state.enginesByCategory.get(normalized);
-  if (Array.isArray(primaryList)) {
-    primaryList.forEach((meta, index) => {
-      if (meta?.id && !map.has(meta.id)) {
-        map.set(meta.id, index);
-      }
-    });
-  }
-  if (normalized !== ALL_CATEGORY_ID) {
-    const fallbackList = state.enginesByCategory.get(ALL_CATEGORY_ID);
-    if (Array.isArray(fallbackList)) {
-      const offset = map.size;
-      fallbackList.forEach((meta, index) => {
-        if (meta?.id && !map.has(meta.id)) {
-          map.set(meta.id, offset + index);
-        }
-      });
-    }
-  }
-  return map;
-}
-
-function createDisplayOrderMap(categoryId) {
-  const normalized = normalizeCategory(categoryId);
-  const orderMap = new Map();
-
-  if (state.engineDisplayOrder instanceof Map && state.engineDisplayOrder.size > 0) {
-    state.engineDisplayOrder.forEach((meta, engineId) => {
-      if (!meta || typeof meta.order !== 'number') return;
-      const engineCategory = normalizeCategory(meta.category || normalized);
-      if (normalized === ALL_CATEGORY_ID || engineCategory === normalized) {
-        if (!orderMap.has(engineId)) {
-          orderMap.set(engineId, meta.order);
-        }
-      }
-    });
-  }
-
-  const fallbackOrder = buildEngineOrderMap(normalized);
-  fallbackOrder.forEach((value, key) => {
-    if (!orderMap.has(key)) {
-      orderMap.set(key, value);
-    }
-  });
-
-  return orderMap;
 }
 
 function getEntryOrderValue(entry, normalizedCategory, orderMap) {
@@ -7662,22 +5759,6 @@ function getEntryOrderValue(entry, normalizedCategory, orderMap) {
       entry.displayOrder = meta.order;
       return meta.order;
     }
-  }
-  return Number.MAX_SAFE_INTEGER;
-}
-
-function resolveEngineDisplayOrder(engineId, category) {
-  if (!engineId) return Number.MAX_SAFE_INTEGER;
-  if (state.engineDisplayOrder instanceof Map && state.engineDisplayOrder.has(engineId)) {
-    const meta = state.engineDisplayOrder.get(engineId);
-    if (meta && typeof meta.order === 'number') {
-      return meta.order;
-    }
-  }
-  const normalized = normalizeCategory(category || DEFAULT_ACTIVE_CATEGORY);
-  const fallbackOrder = buildEngineOrderMap(normalized);
-  if (fallbackOrder.has(engineId)) {
-    return fallbackOrder.get(engineId);
   }
   return Number.MAX_SAFE_INTEGER;
 }
@@ -7745,28 +5826,6 @@ function splitResultsByFailure(entries) {
     failureCount,
     total: list.length
   };
-}
-
-function getEngineMeta(engineId) {
-  return state.engineIndex.get(engineId) || null;
-}
-
-function deriveEngineLabel(source, fallback = '') {
-  const build = (value) => {
-    if (!value) return '';
-    const normalized = String(value).trim().toLowerCase();
-    if (!normalized) return '';
-    const parts = normalized.split('-').filter(Boolean);
-    if (!parts.length) return normalized;
-    const prefix = parts[0];
-    const restParts = parts.slice(1);
-    if (restParts[0] === 'kamui') {
-      restParts.shift();
-    }
-    const rest = restParts.join('-');
-    return rest ? `${prefix}-${rest}` : prefix;
-  };
-  return build(source) || build(fallback) || (source || fallback || '').toString().toLowerCase();
 }
 
 function formatEngineLabel(entry) {
@@ -7962,11 +6021,9 @@ function updateResultsFileFilterControl(summary) {
     select.value = 'all';
     if (state.resultsFileFilter !== 'all') {
       state.resultsFileFilter = 'all';
-      try {
-        localStorage.setItem(RESULTS_FILE_FILTER_STORAGE_KEY, 'all');
-      } catch (err) {
-        console.warn('[Showcase] failed to persist results file filter', err);
-      }
+      preferenceStorage.writeString(RESULTS_FILE_FILTER_STORAGE_KEY, 'all', {
+        label: 'failed to persist results file filter'
+      });
     }
     return;
   }
@@ -8005,454 +6062,11 @@ function updateResultsFileFilterControl(summary) {
   const nextValue = availableValues.has(previousValue) ? previousValue : 'all';
   if (nextValue !== state.resultsFileFilter) {
     state.resultsFileFilter = nextValue;
-    try {
-      localStorage.setItem(RESULTS_FILE_FILTER_STORAGE_KEY, nextValue);
-    } catch (err) {
-      console.warn('[Showcase] failed to persist results file filter', err);
-    }
+    preferenceStorage.writeString(RESULTS_FILE_FILTER_STORAGE_KEY, nextValue, {
+      label: 'failed to persist results file filter'
+    });
   }
   select.value = nextValue;
-}
-
-function engineDefaults(meta) {
-  if (!meta) return {};
-  const defaults = {};
-  const props = meta?.tools?.submit?.parameters?.properties || {};
-  Object.entries(props).forEach(([key, schema]) => {
-    const defaultValue = getSchemaDefaultValue(schema);
-    if (defaultValue !== undefined) {
-      defaults[key] = cloneParameterDefault(defaultValue);
-    }
-  });
-  return defaults;
-}
-
-function ensureEngineInputs(engineMeta) {
-  if (!engineMeta || !engineMeta.id) return {};
-  if (!state.inputs.has(engineMeta.id)) {
-    state.inputs.set(engineMeta.id, engineDefaults(engineMeta));
-  }
-  return state.inputs.get(engineMeta.id);
-}
-
-function closeLightbox() {
-  if (!activeLightbox) return;
-  const { overlay, onKey, cleanup } = activeLightbox;
-  if (onKey) window.removeEventListener('keydown', onKey);
-  if (typeof cleanup === 'function') {
-    try {
-      cleanup();
-    } catch (err) {
-      console.warn('[Showcase] lightbox cleanup failed', err);
-    }
-  }
-  overlay.remove();
-  document.body.classList.remove('kc-lightbox-open');
-  activeLightbox = null;
-}
-
-function formatMediaCaption(entry, index, total) {
-  const parts = [];
-  if (Number.isFinite(index) && Number.isFinite(total) && total > 0) {
-    parts.push(`${index + 1}/${total}`);
-  }
-  const displayName = entry?.fileName
-    || entry?.name
-    || extractFilename(entry?.path)
-    || extractFilename(entry?.url)
-    || '';
-  if (displayName) {
-    parts.push(displayName);
-  }
-  return parts.join('  •  ');
-}
-
-function openMediaLightbox(entries, startIndex = 0) {
-  if (!Array.isArray(entries) || !entries.length) return;
-  const snapshots = entries.slice();
-  const validIndices = [];
-  snapshots.forEach((entry, idx) => {
-    if (hasMediaUrl(entry)) {
-      validIndices.push(idx);
-    }
-  });
-  if (!validIndices.length) return;
-
-  const indexToPosition = new Map();
-  validIndices.forEach((idx, pos) => {
-    indexToPosition.set(idx, pos);
-  });
-
-  const findNearestIndex = (index) => {
-    if (indexToPosition.has(index)) {
-      return index;
-    }
-    for (const candidate of validIndices) {
-      if (candidate >= index) return candidate;
-    }
-    return validIndices[validIndices.length - 1];
-  };
-
-  const initialIndex = findNearestIndex(startIndex);
-  if (initialIndex === undefined || initialIndex === null) return;
-
-  closeLightbox();
-  closeResultsModal();
-  closeTemplateMenu();
-  closePromptModal();
-
-  const overlay = document.createElement('div');
-  overlay.className = 'kc-lightbox';
-
-  const prevBtn = document.createElement('button');
-  prevBtn.className = 'kc-lightbox__nav kc-lightbox__nav--prev';
-  prevBtn.innerHTML = '‹';
-  prevBtn.setAttribute('aria-label', '前のメディア');
-
-  const nextBtn = document.createElement('button');
-  nextBtn.className = 'kc-lightbox__nav kc-lightbox__nav--next';
-  nextBtn.innerHTML = '›';
-  nextBtn.setAttribute('aria-label', '次のメディア');
-
-  const content = document.createElement('div');
-  content.className = 'kc-lightbox__content';
-
-  const mediaContainer = document.createElement('div');
-  mediaContainer.className = 'kc-lightbox__frame';
-
-  const caption = document.createElement('div');
-  caption.className = 'kc-lightbox__caption';
-
-  content.append(mediaContainer, caption);
-
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'kc-lightbox__close';
-  closeBtn.innerHTML = '&times;';
-
-  overlay.append(prevBtn, nextBtn, content, closeBtn);
-  document.body.appendChild(overlay);
-  document.body.classList.add('kc-lightbox-open');
-
-  const findSibling = (current, direction) => {
-    const pos = indexToPosition.get(current);
-    if (!Number.isFinite(pos)) return null;
-    const nextPos = pos + direction;
-    if (nextPos < 0 || nextPos >= validIndices.length) return null;
-    return validIndices[nextPos];
-  };
-
-  let currentIndex = initialIndex;
-  let releaseCurrent = null;
-
-  const applyCleanup = () => {
-    if (typeof releaseCurrent === 'function') {
-      try {
-        releaseCurrent();
-      } catch (err) {
-        console.warn('[Showcase] media cleanup failed', err);
-      }
-    }
-    releaseCurrent = null;
-  };
-
-  const renderEntry = (entry) => {
-    applyCleanup();
-    mediaContainer.innerHTML = '';
-    mediaContainer.className = 'kc-lightbox__frame';
-
-    const type = resolveMediaEntryType(entry);
-    if (type === 'video' && hasMediaUrl(entry)) {
-      const video = document.createElement('video');
-      video.className = 'kc-lightbox__video';
-      video.src = entry.url;
-      video.controls = true;
-      video.autoplay = true;
-      video.playsInline = true;
-      video.muted = false;
-      applyLoopSettingToMedia(video);
-      bindShowcaseMediaLifecycle(video, {
-        src: entry.url,
-        mediaType: 'video',
-        context: 'lightbox'
-      });
-      mediaContainer.innerHTML = '';
-      mediaContainer.className = 'kc-lightbox__frame kc-lightbox__frame--video';
-      mediaContainer.appendChild(video);
-      const startPlayback = () => {
-        const playPromise = video.play();
-        if (playPromise && typeof playPromise.catch === 'function') {
-          playPromise.catch(() => {});
-        }
-      };
-      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-        startPlayback();
-      } else {
-        video.addEventListener('canplay', startPlayback, { once: true });
-      }
-      releaseCurrent = () => {
-        try {
-          video.pause();
-          video.removeAttribute('src');
-          video.load();
-        } catch (err) {
-          console.warn('[Showcase] video cleanup failed', err);
-        }
-      };
-      updateBatchControlVisuals();
-      return;
-    }
-
-    if (type === 'sound' && hasMediaUrl(entry)) {
-      const audio = document.createElement('audio');
-      audio.className = 'kc-lightbox__audio';
-      audio.src = entry.url;
-      audio.controls = true;
-      audio.autoplay = true;
-      applyLoopSettingToMedia(audio);
-      bindShowcaseMediaLifecycle(audio, {
-        src: entry.url,
-        mediaType: 'audio',
-        context: 'lightbox'
-      });
-      mediaContainer.innerHTML = '';
-      mediaContainer.className = 'kc-lightbox__frame kc-lightbox__frame--audio';
-      mediaContainer.appendChild(audio);
-      audio.play().catch(() => {});
-      updateBatchControlVisuals();
-      releaseCurrent = () => {
-        try {
-          audio.pause();
-          audio.removeAttribute('src');
-          audio.load();
-        } catch (err) {
-          console.warn('[Showcase] audio cleanup failed', err);
-        }
-      };
-      return;
-    }
-
-    if (type === '3d' && hasMediaUrl(entry)) {
-      mediaContainer.className = 'kc-lightbox__frame kc-lightbox__frame--3d';
-      if (isPreviewable3dEntry(entry)) {
-        mount3dPreview(mediaContainer, {
-          src: entry.url,
-          alt: entry.name || extractFilename(entry.path) || '3D preview',
-          variant: 'lightbox'
-        });
-        releaseCurrent = () => {
-          mediaContainer.innerHTML = '';
-        };
-      } else {
-        render3dDownloadMessage(mediaContainer, entry.url, 'lightbox');
-      }
-      return;
-    }
-
-    if (type === 'other' && hasMediaUrl(entry)) {
-      const message = document.createElement('div');
-      message.className = 'kc-lightbox__message';
-      const text = document.createElement('span');
-      text.textContent = 'このファイル形式のプレビューは未対応です。';
-      const br = document.createElement('br');
-      const link = document.createElement('a');
-      link.href = entry.url;
-      link.textContent = 'ダウンロード';
-      link.setAttribute('download', '');
-      message.append(text, br, link, document.createTextNode(' してご確認ください。'));
-      mediaContainer.innerHTML = '';
-      mediaContainer.className = 'kc-lightbox__frame kc-lightbox__frame--message';
-      mediaContainer.appendChild(message);
-      return;
-    }
-
-    if (hasMediaUrl(entry)) {
-      const frame = document.createElement('div');
-      frame.className = 'kc-lightbox__frame';
-      const img = document.createElement('img');
-      img.className = 'kc-lightbox__image';
-      img.src = entry.url;
-      img.alt = entry.name || extractFilename(entry.path) || 'preview';
-      frame.appendChild(img);
-      mediaContainer.innerHTML = '';
-      mediaContainer.className = '';
-      mediaContainer.appendChild(frame);
-      return;
-    }
-
-    const placeholder = document.createElement('div');
-    placeholder.className = 'kc-lightbox__message';
-    placeholder.textContent = 'プレビュー対象のURLが見つかりません';
-    mediaContainer.innerHTML = '';
-    mediaContainer.className = '';
-    mediaContainer.appendChild(placeholder);
-  };
-
-  const updateView = (index) => {
-    if (!indexToPosition.has(index)) return;
-    const entry = snapshots[index];
-    if (!entry || !hasMediaUrl(entry)) return;
-    currentIndex = index;
-    renderEntry(entry);
-    const position = indexToPosition.get(index) || 0;
-    caption.textContent = formatMediaCaption(entry, position, validIndices.length);
-    const prevIndex = findSibling(index, -1);
-    const nextIndex = findSibling(index, 1);
-    prevBtn.disabled = prevIndex === null;
-    nextBtn.disabled = nextIndex === null;
-  };
-
-  prevBtn.addEventListener('click', (evt) => {
-    evt.stopPropagation();
-    const prevIndex = findSibling(currentIndex, -1);
-    if (prevIndex !== null) {
-      updateView(prevIndex);
-    }
-  });
-
-  nextBtn.addEventListener('click', (evt) => {
-    evt.stopPropagation();
-    const nextIndex = findSibling(currentIndex, 1);
-    if (nextIndex !== null) {
-      updateView(nextIndex);
-    }
-  });
-
-  overlay.addEventListener('click', (evt) => {
-    if (evt.target === overlay) {
-      closeLightbox();
-    }
-  });
-
-  closeBtn.addEventListener('click', (evt) => {
-    evt.stopPropagation();
-    closeLightbox();
-  });
-
-  const onKey = (evt) => {
-    if (evt.key === 'Escape') {
-      closeLightbox();
-    } else if (evt.key === 'ArrowLeft') {
-      const prevIndex = findSibling(currentIndex, -1);
-      if (prevIndex !== null) updateView(prevIndex);
-    } else if (evt.key === 'ArrowRight') {
-      const nextIndex = findSibling(currentIndex, 1);
-      if (nextIndex !== null) updateView(nextIndex);
-    }
-  };
-
-  window.addEventListener('keydown', onKey);
-
-  updateView(initialIndex);
-
-  activeLightbox = {
-    overlay,
-    onKey,
-    cleanup: applyCleanup
-  };
-}
-
-function openResultLightbox(startIndex) {
-  const results = getCurrentResults();
-  const entry = results[startIndex];
-  if (!entry || !entry.imageUrl) return;
-
-  closeResultsModal();
-  closeLightbox();
-  closePromptModal();
-
-  const overlay = document.createElement('div');
-  overlay.className = 'kc-lightbox';
-
-  const prevBtn = document.createElement('button');
-  prevBtn.className = 'kc-lightbox__nav kc-lightbox__nav--prev';
-  prevBtn.innerHTML = '‹';
-
-  const nextBtn = document.createElement('button');
-  nextBtn.className = 'kc-lightbox__nav kc-lightbox__nav--next';
-  nextBtn.innerHTML = '›';
-
-  const content = document.createElement('div');
-  content.className = 'kc-lightbox__content';
-
-  const frame = document.createElement('div');
-  frame.className = 'kc-lightbox__frame';
-
-  const img = document.createElement('img');
-  img.className = 'kc-lightbox__image';
-  frame.appendChild(img);
-
-  const caption = document.createElement('div');
-  caption.className = 'kc-lightbox__caption';
-
-  content.append(frame, caption);
-
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'kc-lightbox__close';
-  closeBtn.innerHTML = '&times;';
-
-  overlay.append(prevBtn, nextBtn, content, closeBtn);
-  document.body.appendChild(overlay);
-  document.body.classList.add('kc-lightbox-open');
-
-  const findSibling = (current, direction) => {
-    let idx = current + direction;
-    while (idx >= 0 && idx < results.length) {
-      if (results[idx]?.imageUrl) return idx;
-      idx += direction;
-    }
-    return null;
-  };
-
-  let currentIndex = startIndex;
-
-  const updateView = (index) => {
-    const currentEntry = results[index];
-    if (!currentEntry || !currentEntry.imageUrl) return;
-    currentIndex = index;
-    img.src = currentEntry.imageUrl;
-    img.alt = currentEntry.label || currentEntry.engineId || 'preview';
-    caption.textContent = currentEntry.fileName || currentEntry.engineId || '';
-    const prevIndex = findSibling(index, -1);
-    const nextIndex = findSibling(index, 1);
-    prevBtn.disabled = prevIndex === null;
-    nextBtn.disabled = nextIndex === null;
-  };
-
-  prevBtn.addEventListener('click', (evt) => {
-    evt.stopPropagation();
-    const prevIndex = findSibling(currentIndex, -1);
-    if (prevIndex !== null) updateView(prevIndex);
-  });
-
-  nextBtn.addEventListener('click', (evt) => {
-    evt.stopPropagation();
-    const nextIndex = findSibling(currentIndex, 1);
-    if (nextIndex !== null) updateView(nextIndex);
-  });
-
-  overlay.addEventListener('click', (evt) => {
-    if (evt.target === overlay) closeLightbox();
-  });
-  closeBtn.addEventListener('click', (evt) => {
-    evt.stopPropagation();
-    closeLightbox();
-  });
-
-  const onKey = (evt) => {
-    if (evt.key === 'Escape') {
-      closeLightbox();
-    } else if (evt.key === 'ArrowLeft') {
-      const prevIndex = findSibling(currentIndex, -1);
-      if (prevIndex !== null) updateView(prevIndex);
-    } else if (evt.key === 'ArrowRight') {
-      const nextIndex = findSibling(currentIndex, 1);
-      if (nextIndex !== null) updateView(nextIndex);
-    }
-  };
-  window.addEventListener('keydown', onKey);
-
-  updateView(startIndex);
-  activeLightbox = { overlay, onKey };
 }
 
 function closeResultsModal() {
@@ -8492,20 +6106,22 @@ function openResultsGallery() {
 
   const header = document.createElement('div');
   header.className = 'kc-results-modal__header';
-  const headerContent = document.createElement('div');
-  headerContent.className = 'kc-results-modal__header-content';
-  const title = document.createElement('h3');
-  title.className = 'kc-results-modal__title';
   const activeEntry = getActiveHistoryEntry();
   const modalCategory = normalizeCategory(activeEntry?.category || state.activeCategory);
   const modalTypeTokens = results.length ? collectResultTypes(results[0]) : [];
-  const modalTypeLabel = modalTypeTokens.length ? modalTypeTokens[0].toUpperCase() : '';
   const modalPrompt = (activeEntry?.prompt || '').trim()
     || getActivePromptForCategory(modalCategory)
     || '';
-  const promptSuffix = modalPrompt ? ` 「${modalPrompt}」` : '';
-  const typeSuffix = modalTypeLabel ? ` ${modalTypeLabel}` : '';
-  title.textContent = `${categoryLabel(modalCategory)}${typeSuffix}${promptSuffix}`;
+  const entryTemplateContext = resolveEntryTemplateContext(activeEntry);
+  const resultTemplateContext = (() => {
+    const withContext = results.find((item) => item && item.templateContext);
+    if (withContext && withContext.templateContext) {
+      return cloneTemplateContext(withContext.templateContext, entryTemplateContext);
+    }
+    return null;
+  })();
+  const templateContext = cloneTemplateContext(entryTemplateContext || resultTemplateContext);
+  const displayTypeToken = (templateContext?.type || modalTypeTokens[0] || '').toUpperCase();
 
   const controls = document.createElement('div');
   controls.className = 'kc-results-controls kc-results-modal__controls';
@@ -8545,7 +6161,61 @@ function openResultsGallery() {
   loopBtn.textContent = '🔁';
 
   controls.append(rewindBtn, toggleBtn, forwardBtn, loopBtn);
-  headerContent.append(title, controls);
+  const headerGrid = document.createElement('div');
+  headerGrid.className = 'kc-results-modal__header-grid';
+
+  const metaColumn = document.createElement('div');
+  metaColumn.className = 'kc-results-modal__meta';
+
+  const badgeRow = document.createElement('div');
+  badgeRow.className = 'kc-results-modal__badges';
+  const categoryBadgeEl = document.createElement('span');
+  categoryBadgeEl.className = 'kc-badge kc-results-modal__badge';
+  categoryBadgeEl.textContent = categoryLabel(modalCategory);
+  applyBadgeTheme(categoryBadgeEl, modalCategory, { fallbackCategory: modalCategory });
+  badgeRow.append(categoryBadgeEl);
+
+  if (displayTypeToken) {
+    const typeBadgeEl = document.createElement('span');
+    typeBadgeEl.className = 'kc-badge kc-badge--type kc-results-modal__badge';
+    typeBadgeEl.textContent = displayTypeToken;
+    applyBadgeTheme(typeBadgeEl, displayTypeToken, { fallbackCategory: modalCategory });
+    badgeRow.append(typeBadgeEl);
+  }
+  metaColumn.append(badgeRow);
+
+  if (templateContext?.name) {
+    const templateNameEl = document.createElement('div');
+    templateNameEl.className = 'kc-results-modal__template-name';
+    templateNameEl.textContent = templateContext.name;
+    metaColumn.append(templateNameEl);
+  }
+
+  headerGrid.append(metaColumn);
+
+  const promptColumn = document.createElement('div');
+  promptColumn.className = 'kc-results-modal__prompt';
+  if (modalPrompt) {
+    promptColumn.textContent = modalPrompt;
+  } else if (templateContext?.prompt) {
+    promptColumn.textContent = templateContext.prompt;
+  } else {
+    promptColumn.classList.add('is-empty');
+  }
+  headerGrid.append(promptColumn);
+
+  const memoColumn = document.createElement('div');
+  memoColumn.className = 'kc-results-modal__memo';
+  if (templateContext?.memo) {
+    memoColumn.textContent = templateContext.memo;
+  } else {
+    memoColumn.classList.add('is-empty');
+  }
+  headerGrid.append(memoColumn);
+
+  const controlWrap = document.createElement('div');
+  controlWrap.className = 'kc-results-modal__bulk-controls';
+  controlWrap.append(controls);
 
   const closeBtn = document.createElement('button');
   closeBtn.type = 'button';
@@ -8557,7 +6227,7 @@ function openResultsGallery() {
     closeResultsModal();
   });
 
-  header.append(headerContent, closeBtn);
+  header.append(headerGrid, controlWrap, closeBtn);
 
   const body = document.createElement('div');
   body.className = 'kc-results-modal__body';
@@ -8595,13 +6265,13 @@ function openResultsGallery() {
         let previewEl;
         if (mediaType === 'video') {
           const video = document.createElement('video');
-          video.src = entry.imageUrl;
           video.muted = true;
           video.playsInline = true;
           video.preload = 'metadata';
           video.autoplay = true;
           video.controls = true;
           video.className = 'kc-results-modal__video';
+          applyAssetSrcWithFallback(video, entry.imageUrl, { type: 'video' });
           applyLoopSettingToMedia(video);
           bindShowcaseMediaLifecycle(video, {
             src: entry.imageUrl,
@@ -8622,10 +6292,10 @@ function openResultsGallery() {
           previewEl = video;
         } else if (mediaType === 'sound') {
           const audio = document.createElement('audio');
-          audio.src = entry.imageUrl;
           audio.controls = true;
           audio.preload = 'metadata';
           audio.className = 'kc-results-modal__audio';
+          applyAssetSrcWithFallback(audio, entry.imageUrl, { type: 'audio' });
           applyLoopSettingToMedia(audio);
           bindShowcaseMediaLifecycle(audio, {
             src: entry.imageUrl,
@@ -8646,7 +6316,7 @@ function openResultsGallery() {
           previewEl = null;
         } else {
           const img = document.createElement('img');
-          img.src = entry.imageUrl;
+          applyAssetSrcWithFallback(img, entry.imageUrl);
           img.alt = label;
           previewEl = img;
         }
@@ -8756,177 +6426,6 @@ function openResultsGallery() {
   };
 }
 
-function createLightboxEntryFromSource(entry, { preferImageUrl = false } = {}) {
-  if (!entry) {
-    return {
-      url: ''
-    };
-  }
-
-  const urlCandidates = [];
-  if (preferImageUrl && entry.imageUrl) urlCandidates.push(entry.imageUrl);
-  if (entry.url) urlCandidates.push(entry.url);
-  if (entry.absolute) urlCandidates.push(entry.absolute);
-  if (entry.webPath) urlCandidates.push(entry.webPath);
-  const url = urlCandidates.find((value) => typeof value === 'string' && value.trim().length > 0) || '';
-
-  const fallbackName = entry.fileName
-    || entry.name
-    || entry.label
-    || extractFilename(entry.path)
-    || extractFilename(url)
-    || '';
-
-  const base = {
-    ...entry,
-    url,
-    imageUrl: entry.imageUrl || url || entry.absolute || entry.webPath || '',
-    fileName: entry.fileName || fallbackName,
-    name: entry.name || entry.label || fallbackName,
-    path: entry.path || entry.fileName || entry.name || ''
-  };
-
-  const resolvedType = resolveMediaEntryType(base);
-  if (!base.filterType || base.filterType === 'other') {
-    base.filterType = resolvedType;
-  }
-  if (!base.type || base.type === 'other') {
-    base.type = resolvedType;
-  }
-
-  return base;
-}
-
-function createLightboxEntriesFromSources(entries, options = {}) {
-  if (!Array.isArray(entries)) return [];
-  return entries.map((entry) => createLightboxEntryFromSource(entry, options));
-}
-
-function openMediaPreview(source, maybeIndexOrLabel, maybeType = 'image') {
-  if (Array.isArray(source)) {
-    const startIndex = Number.isFinite(maybeIndexOrLabel) ? Number(maybeIndexOrLabel) : 0;
-    openMediaLightbox(createLightboxEntriesFromSources(source, { preferImageUrl: true }), startIndex);
-    return;
-  }
-
-  const url = source;
-  const label = typeof maybeIndexOrLabel === 'string' ? maybeIndexOrLabel : '';
-  const type = typeof maybeType === 'string' ? maybeType : 'image';
-  if (!url) return;
-  openMediaLightbox([
-    createLightboxEntryFromSource({
-      url,
-      name: label,
-      filterType: type,
-      type
-    })
-  ], 0);
-}
-
-function cancelParamsPopoverClose() {
-  if (!paramsPopoverCloseTimer) return;
-  clearTimeout(paramsPopoverCloseTimer);
-  paramsPopoverCloseTimer = null;
-}
-
-function paramsPopoverContainsSelection(popover) {
-  if (!popover) return false;
-  if (typeof window.getSelection !== 'function') return false;
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return false;
-  const anchorNode = selection.anchorNode;
-  if (!anchorNode) return false;
-  const nodeType = (window.Node && window.Node.ELEMENT_NODE) || 1;
-  const anchorElement = anchorNode.nodeType === nodeType
-    ? anchorNode
-    : anchorNode.parentElement;
-  if (!anchorElement) return false;
-  return popover.contains(anchorElement);
-}
-
-function isParamsPopoverEngaged() {
-  if (!activeParamsPopover) return false;
-  const { popover, anchor } = activeParamsPopover;
-  if (!popover) return false;
-  const pointerInside = typeof popover.matches === 'function' && popover.matches(':hover');
-  const focusInside = popover.contains(document.activeElement);
-  const selectionInside = paramsPopoverContainsSelection(popover);
-  const anchorHovered = anchor && typeof anchor.matches === 'function' && anchor.matches(':hover');
-  return Boolean(pointerInside || focusInside || selectionInside || anchorHovered);
-}
-
-function scheduleParamsPopoverClose() {
-  cancelParamsPopoverClose();
-  if (isParamsPopoverEngaged()) {
-    return;
-  }
-  paramsPopoverCloseTimer = window.setTimeout(() => {
-    if (isParamsPopoverEngaged()) {
-      cancelParamsPopoverClose();
-      return;
-    }
-    closeParamsPopover();
-  }, PARAMS_POPOVER_HIDE_DELAY_MS);
-}
-
-function positionParamsPopover(popover, anchor) {
-  if (!popover || !anchor) return;
-  const rect = anchor.getBoundingClientRect();
-  const popRect = popover.getBoundingClientRect();
-  const padding = 12;
-  const offset = 12;
-
-  let left = rect.right + offset;
-  if (left + popRect.width > window.innerWidth - padding) {
-    left = rect.left - popRect.width - offset;
-  }
-  left = Math.max(padding, Math.min(left, window.innerWidth - popRect.width - padding));
-
-  const maxTop = window.innerHeight - popRect.height - padding;
-  let top = rect.bottom - popRect.height;
-  if (Number.isNaN(top)) {
-    top = padding;
-  }
-  if (maxTop < padding) {
-    top = padding;
-  } else if (top > maxTop) {
-    top = maxTop;
-  }
-  if (top < padding) {
-    top = padding;
-  }
-
-  popover.style.left = `${left}px`;
-  popover.style.top = `${top}px`;
-}
-
-function closeParamsPopover() {
-  cancelParamsPopoverClose();
-  if (!activeParamsPopover) return;
-  const { popover, anchor, onWindowChange, onKeyDown } = activeParamsPopover;
-  if (popover && popover.isConnected) {
-    popover.removeEventListener('mouseenter', cancelParamsPopoverClose);
-    popover.removeEventListener('mouseleave', scheduleParamsPopoverClose);
-    popover.removeEventListener('pointerdown', cancelParamsPopoverClose);
-    popover.removeEventListener('pointerup', cancelParamsPopoverClose);
-    popover.removeEventListener('focusin', cancelParamsPopoverClose);
-    popover.removeEventListener('focusout', handlePopoverFocusOut);
-    popover.remove();
-  }
-  if (anchor) {
-    anchor.classList.remove('is-active');
-    anchor.setAttribute('aria-expanded', 'false');
-  }
-  if (onWindowChange) {
-    window.removeEventListener('scroll', onWindowChange, true);
-    window.removeEventListener('resize', onWindowChange);
-  }
-  if (onKeyDown) {
-    window.removeEventListener('keydown', onKeyDown);
-  }
-  activeParamsPopover = null;
-}
-
 function closePromptPopover({ resetState = true } = {}) {
   const panel = document.getElementById('kc-results-prompt-panel');
   const toggle = document.getElementById('kc-results-prompt-button');
@@ -8970,132 +6469,6 @@ function closePromptPopover({ resetState = true } = {}) {
   }
 }
 
-function handlePopoverFocusOut(evt) {
-  if (!activeParamsPopover) return;
-  const { popover } = activeParamsPopover;
-  if (!popover || popover.contains(evt.relatedTarget)) {
-    return;
-  }
-  scheduleParamsPopoverClose();
-}
-
-function openParamsPopover(engineMeta, anchor) {
-  if (!engineMeta || !anchor) return;
-  ensureEngineInputs(engineMeta);
-  cancelParamsPopoverClose();
-
-  if (activeParamsPopover && activeParamsPopover.anchor === anchor) {
-    positionParamsPopover(activeParamsPopover.popover, anchor);
-    return;
-  }
-
-  closeParamsPopover();
-
-  const popover = document.createElement('div');
-  popover.className = 'kc-param-popover';
-  popover.setAttribute('role', 'dialog');
-  const label = engineMeta.displayLabel || engineMeta.label || engineMeta.id || 'MCP 詳細設定';
-  popover.setAttribute('aria-label', `${label} の詳細設定`);
-
-  const header = document.createElement('div');
-  header.className = 'kc-param-popover__header';
-  const title = document.createElement('div');
-  title.className = 'kc-param-popover__title';
-  title.textContent = label;
-  header.append(title);
-
-  if (engineMeta.documentationUrl) {
-    const docLink = document.createElement('a');
-    docLink.className = 'kc-param-popover__doc-link';
-    docLink.href = engineMeta.documentationUrl;
-    docLink.target = '_blank';
-    docLink.rel = 'noopener noreferrer';
-    docLink.setAttribute('aria-label', `${label} のドキュメントを開く`);
-    docLink.title = 'ドキュメントを開く';
-    docLink.addEventListener('click', (evt) => {
-      evt.stopPropagation();
-    });
-
-    const icon = document.createElement('span');
-    icon.className = 'kc-param-popover__doc-icon';
-    icon.setAttribute('aria-hidden', 'true');
-    icon.textContent = '↗';
-
-    docLink.append(icon);
-    header.append(docLink);
-  }
-
-  const body = document.createElement('div');
-  body.className = 'kc-param-popover__body';
-  renderParameterFields(engineMeta, body);
-  const fragments = [header];
-
-  let summaryEn = typeof engineMeta.docSummaryEn === 'string' ? engineMeta.docSummaryEn.trim() : '';
-  let summaryJa = typeof engineMeta.docSummaryJa === 'string' ? engineMeta.docSummaryJa.trim() : '';
-  if (!summaryEn && !summaryJa && typeof engineMeta.description === 'string') {
-    summaryEn = engineMeta.description.trim();
-  }
-
-  if (summaryEn || summaryJa) {
-    const summary = document.createElement('div');
-    summary.className = 'kc-param-popover__doc-summary';
-    if (summaryEn) {
-      const lineEn = document.createElement('div');
-      lineEn.className = 'kc-param-popover__doc-summary-line kc-param-popover__doc-summary-line--primary';
-      lineEn.textContent = summaryEn;
-      summary.append(lineEn);
-    }
-    if (summaryJa) {
-      const lineJa = document.createElement('div');
-      lineJa.className = 'kc-param-popover__doc-summary-line kc-param-popover__doc-summary-line--secondary';
-      lineJa.textContent = summaryJa;
-      summary.append(lineJa);
-    }
-    fragments.push(summary);
-  }
-
-  fragments.push(body);
-
-  popover.append(...fragments);
-  document.body.appendChild(popover);
-
-  const handleWindowChange = () => {
-    positionParamsPopover(popover, anchor);
-  };
-  window.addEventListener('scroll', handleWindowChange, true);
-  window.addEventListener('resize', handleWindowChange);
-
-  const handleKeyDown = (evt) => {
-    if (evt.key === 'Escape') {
-      closeParamsPopover();
-      anchor.blur();
-    }
-  };
-  window.addEventListener('keydown', handleKeyDown);
-
-  popover.addEventListener('mouseenter', cancelParamsPopoverClose);
-  popover.addEventListener('mouseleave', scheduleParamsPopoverClose);
-  popover.addEventListener('pointerdown', cancelParamsPopoverClose);
-  popover.addEventListener('pointerup', cancelParamsPopoverClose);
-  popover.addEventListener('focusin', cancelParamsPopoverClose);
-  popover.addEventListener('focusout', handlePopoverFocusOut);
-
-  anchor.classList.add('is-active');
-  anchor.setAttribute('aria-expanded', 'true');
-
-  activeParamsPopover = {
-    anchor,
-    engineId: engineMeta.id,
-    popover,
-    onWindowChange: handleWindowChange,
-    onKeyDown: handleKeyDown
-  };
-
-  requestAnimationFrame(() => {
-    positionParamsPopover(popover, anchor);
-  });
-}
-
 function positionPromptPopoverElement(panel, anchor) {
   if (!panel || !anchor) return;
   const gap = 14;
@@ -9122,18 +6495,45 @@ function positionPromptPopoverElement(panel, anchor) {
   panel.style.top = `${Math.round(top)}px`;
 }
 
-function openPromptPopover(anchor, promptText) {
+function openPromptPopover(anchor, payload = {}) {
   const panel = document.getElementById('kc-results-prompt-panel');
   const textTarget = document.getElementById('kc-results-prompt-text');
-  const text = typeof promptText === 'string' ? promptText.trim() : '';
-  if (!panel || !textTarget || !text) {
+  const memoTarget = document.getElementById('kc-results-prompt-memo');
+  const titleTarget = document.getElementById('kc-results-prompt-panel-title');
+  if (!panel || !textTarget) {
+    closePromptPopover();
+    return;
+  }
+
+  const options = typeof payload === 'string'
+    ? { promptText: payload }
+    : (payload && typeof payload === 'object' ? payload : {});
+  const promptText = typeof options.promptText === 'string' ? options.promptText.trim() : '';
+  const memoText = typeof options.memoText === 'string' ? options.memoText.trim() : '';
+  const templateName = typeof options.templateName === 'string' ? options.templateName.trim() : '';
+
+  if (!promptText && !memoText) {
     closePromptPopover();
     return;
   }
 
   closePromptPopover({ resetState: false });
 
-  textTarget.textContent = text;
+  if (titleTarget) {
+    titleTarget.textContent = templateName || 'prompt';
+  }
+  if (memoTarget) {
+    if (memoText) {
+      memoTarget.textContent = memoText;
+      memoTarget.hidden = false;
+    } else {
+      memoTarget.textContent = '';
+      memoTarget.hidden = true;
+    }
+  }
+  textTarget.textContent = promptText;
+  textTarget.hidden = !promptText;
+
   const host = document.getElementById('kc-results-prompt-host') || panel.parentElement;
   if (host && host.id) {
     panel.dataset.hostId = host.id;
@@ -9189,20 +6589,23 @@ function openPromptPopover(anchor, promptText) {
 
 function resolveUrl(pathOrUrl) {
   if (/^https?:/i.test(pathOrUrl)) return pathOrUrl;
-  if (!state.backendOrigin) return pathOrUrl;
   const trimmed = pathOrUrl.startsWith('/') ? pathOrUrl : `/${pathOrUrl}`;
-  return `${state.backendOrigin}${trimmed}`;
-}
 
-function deriveDocumentationUrl(meta) {
-  if (!meta) return '';
-  if (typeof meta.documentationUrl === 'string' && meta.documentationUrl.trim()) {
-    return meta.documentationUrl.trim();
+  let origin = state.backendOrigin;
+  if (!origin && typeof window !== 'undefined') {
+    const forced = typeof window.__kcBackendOrigin === 'string' ? window.__kcBackendOrigin.trim() : '';
+    if (forced) {
+      origin = forced;
+    }
+  }
+  if (!origin && trimmed.startsWith('/api/')) {
+    origin = 'http://localhost:7777';
   }
 
-  const override = DOC_URL_OVERRIDES[meta.id];
-  if (override) return override;
-  return '';
+  if (origin) {
+    return `${origin}${trimmed}`;
+  }
+  return trimmed;
 }
 
 function fetchJson(url, options) {
@@ -9219,7 +6622,7 @@ function fetchJson(url, options) {
 function saveHistoryToStorage() {
   const filters = createDefaultHistoryFilters();
   const payload = {
-    version: 3,
+    version: 4,
     filters,
     entries: state.history.map((entry) => ({
       id: entry.id,
@@ -9227,22 +6630,24 @@ function saveHistoryToStorage() {
       createdAt: entry.createdAt,
       category: entry.category,
       sourceCategories: Array.isArray(entry.sourceCategories) ? entry.sourceCategories : [],
+      templateContext: entry.templateContext ? cloneTemplateContext(entry.templateContext) : null,
       results: Array.isArray(entry.results)
         ? entry.results.map((item) => ({
             ...item,
             sourceCategory: item.sourceCategory || '',
             type: item.type || '',
-            typePrefixes: Array.isArray(item.typePrefixes) ? item.typePrefixes : []
+            typePrefixes: Array.isArray(item.typePrefixes) ? item.typePrefixes : [],
+            templateContext: item.templateContext
+              ? cloneTemplateContext(item.templateContext, entry.templateContext)
+              : (entry.templateContext ? cloneTemplateContext(entry.templateContext) : null)
           }))
         : []
     }))
   };
 
-  try {
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(payload));
-  } catch (err) {
-    console.warn('[Showcase] failed to persist history cache', err);
-  }
+  preferenceStorage.writeJson(HISTORY_STORAGE_KEY, payload, {
+    label: 'failed to persist history cache'
+  });
 
   if (isShowcaseSyncDisabled()) {
     return;
@@ -9351,7 +6756,7 @@ function parseTemplateYaml(text) {
 
 async function loadTemplateCatalog() {
   try {
-    const res = await fetch('/data/kamui-code/templates.yaml', { cache: 'no-cache' });
+    const res = await fetch('/data/showcase/prompt-templates.yaml', { cache: 'no-cache' });
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
@@ -9363,70 +6768,25 @@ async function loadTemplateCatalog() {
   }
 }
 
-async function loadDocMetadata() {
-  try {
-    const res = await fetch(DOC_METADATA_ENDPOINT, { cache: 'no-cache' });
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-    const json = await res.json();
-    const map = new Map();
-    if (json && typeof json === 'object') {
-      Object.entries(json).forEach(([id, meta]) => {
-        if (!id || typeof id !== 'string' || !meta || typeof meta !== 'object') {
-          return;
-        }
-        const documentationUrl = typeof meta.documentationUrl === 'string' ? meta.documentationUrl.trim() : '';
-        const descriptionEn = typeof meta.descriptionEn === 'string' ? meta.descriptionEn.trim() : '';
-        const descriptionJa = typeof meta.descriptionJa === 'string' ? meta.descriptionJa.trim() : '';
-        map.set(id, {
-          documentationUrl,
-          descriptionEn,
-          descriptionJa
-        });
-      });
-    }
-    state.docMetadata = map;
-  } catch (err) {
-    console.warn('[Showcase] doc metadata load failed', err);
-    state.docMetadata = new Map();
-  }
-}
-
-function getDocMetadata(engineId) {
-  if (!engineId) return null;
-  return state.docMetadata.get(engineId) || null;
-}
-
 async function loadTemplatePreferences() {
   let payload = null;
   let needsMigration = false;
 
   const loadLocal = () => {
-    try {
-      const raw = localStorage.getItem(TEMPLATE_STORAGE_KEY);
-      if (!raw) return null;
-      let parsed;
-      try {
-        parsed = JSON.parse(raw);
-      } catch (parseErr) {
-        console.warn('[Showcase] template preferences local parse failed', parseErr);
-        localStorage.removeItem(TEMPLATE_STORAGE_KEY);
-        return null;
-      }
-      if (Array.isArray(parsed)) {
-        return { payload: { version: 1, hidden: [], custom: parsed }, needsMigration: true };
-      }
-      if (parsed && typeof parsed === 'object') {
-        const normalized = {
-          version: Number.isFinite(parsed.version) ? parsed.version : 1,
-          hidden: Array.isArray(parsed.hidden) ? parsed.hidden : [],
-          custom: Array.isArray(parsed.custom) ? parsed.custom : []
-        };
-        return { payload: normalized, needsMigration: !parsed.version || parsed.version < 4 };
-      }
-    } catch (storageErr) {
-      console.warn('[Showcase] template preferences local load failed', storageErr);
+    const parsed = preferenceStorage.readJson(TEMPLATE_STORAGE_KEY, {
+      label: 'template preferences local load failed',
+      parseLabel: 'template preferences local parse failed'
+    });
+    if (Array.isArray(parsed)) {
+      return { payload: { version: 1, hidden: [], custom: parsed }, needsMigration: true };
+    }
+    if (parsed && typeof parsed === 'object') {
+      const normalized = {
+        version: Number.isFinite(parsed.version) ? parsed.version : 1,
+        hidden: Array.isArray(parsed.hidden) ? parsed.hidden : [],
+        custom: Array.isArray(parsed.custom) ? parsed.custom : []
+      };
+      return { payload: normalized, needsMigration: !parsed.version || parsed.version < 4 };
     }
     return null;
   };
@@ -9447,11 +6807,9 @@ async function loadTemplatePreferences() {
           custom: Array.isArray(response.custom) ? response.custom : []
         };
         needsMigration = payload.version < 4;
-        try {
-          localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(payload));
-        } catch (cacheErr) {
-          console.warn('[Showcase] template cache update failed', cacheErr);
-        }
+        preferenceStorage.writeJson(TEMPLATE_STORAGE_KEY, payload, {
+          label: 'template cache update failed'
+        });
       }
     } catch (err) {
       console.warn('[Showcase] template preferences fetch failed', err);
@@ -9460,7 +6818,7 @@ async function loadTemplatePreferences() {
 
   if (!payload) {
     try {
-      const res = await fetch('/data/kamui-code/template-prefs.json', { cache: 'no-cache' });
+      const res = await fetch('/data/showcase/prompt-template-prefs.json', { cache: 'no-cache' });
       if (res.ok) {
         const json = await res.json();
         if (json && typeof json === 'object') {
@@ -9470,11 +6828,9 @@ async function loadTemplatePreferences() {
             custom: Array.isArray(json.custom) ? json.custom : []
           };
           needsMigration = payload.version < 4;
-          try {
-            localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(payload));
-          } catch (persistErr) {
-            console.warn('[Showcase] template fallback cache failed', persistErr);
-          }
+          preferenceStorage.writeJson(TEMPLATE_STORAGE_KEY, payload, {
+            label: 'template fallback cache failed'
+          });
         }
       }
     } catch (staticErr) {
@@ -9515,6 +6871,35 @@ async function loadTemplatePreferences() {
   state.templateHidden = new Set(hidden.map((id) => id.trim()).filter(Boolean));
   state.templateCustom = custom;
 
+  const defaultTemplateIds = new Set((state.templateDefaults || []).map((tpl) => tpl.id).filter(Boolean));
+  const dedupedCustom = [];
+  const seenCustomIds = new Set();
+  let preferencesChanged = false;
+
+  state.templateCustom.forEach((tpl) => {
+    if (!tpl || !tpl.id) return;
+    if (seenCustomIds.has(tpl.id)) {
+      preferencesChanged = true;
+      return;
+    }
+    seenCustomIds.add(tpl.id);
+    if (defaultTemplateIds.has(tpl.id) && !state.templateHidden.has(tpl.id)) {
+      state.templateHidden.add(tpl.id);
+      preferencesChanged = true;
+    }
+    dedupedCustom.push(tpl);
+  });
+
+  if (dedupedCustom.length !== state.templateCustom.length) {
+    preferencesChanged = true;
+  }
+
+  state.templateCustom = dedupedCustom;
+
+  if (preferencesChanged) {
+    needsMigration = true;
+  }
+
   if (needsMigration) {
     saveTemplatePreferences();
   }
@@ -9536,11 +6921,9 @@ function saveTemplatePreferences() {
     }))
   };
 
-  try {
-    localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(payload));
-  } catch (err) {
-    console.warn('[Showcase] failed to persist template cache', err);
-  }
+  preferenceStorage.writeJson(TEMPLATE_STORAGE_KEY, payload, {
+    label: 'failed to persist template cache'
+  });
 
   if (isShowcaseSyncDisabled()) {
     return;
@@ -9713,6 +7096,7 @@ function openPromptModal() {
   const commitPrompt = () => {
     const nextPrompt = textarea.value;
     state.prompt = nextPrompt;
+    updateActiveTemplateOverrides();
     syncPromptPreview();
     updateRunButtonState();
     closePromptModal();
@@ -9761,6 +7145,371 @@ function openPromptModal() {
     textarea.focus();
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
   });
+}
+
+function syncMcpConfigButton(countOverride) {
+  const button = document.getElementById('kc-mcp-config-button');
+  if (!button) return;
+  const count = typeof countOverride === 'number'
+    ? countOverride
+    : (Number.isFinite(state.mcpActiveConfigCount) ? state.mcpActiveConfigCount : 0);
+  const baseLabel = 'MCP設定';
+  if (count > 0) {
+    button.textContent = `${baseLabel} (${count})`;
+    button.setAttribute('aria-label', `MCP設定 (選択中 ${count} 件)`);
+  } else {
+    button.textContent = baseLabel;
+    button.setAttribute('aria-label', 'MCP設定');
+  }
+}
+
+async function updateMcpConfigSummary({ silent = false } = {}) {
+  try {
+    const payload = await fetchJson(`${API_BASE}/config-files`);
+    const files = Array.isArray(payload?.files) ? payload.files : [];
+    const activeList = Array.isArray(payload?.active)
+      ? payload.active
+      : files.filter((file) => file && file.active);
+    const activeCount = activeList.length;
+    state.mcpActiveConfigCount = activeCount;
+    if (typeof payload?.directory === 'string') {
+      state.mcpConfigDirectory = payload.directory;
+    }
+    syncMcpConfigButton(activeCount);
+    return payload;
+  } catch (err) {
+    if (!silent) {
+      console.warn('[Showcase] MCP config summary update failed', err);
+    }
+    return null;
+  }
+}
+
+function closeMcpConfigModal() {
+  if (!activeMcpConfigModal) return;
+  const { overlay, onKeyDown } = activeMcpConfigModal;
+  if (onKeyDown) {
+    document.removeEventListener('keydown', onKeyDown);
+  }
+  overlay.remove();
+  document.body.classList.remove('kc-mcp-config-modal-open');
+  activeMcpConfigModal = null;
+}
+
+function renderMcpConfigList(modalState, payload) {
+  const { listContainer, statusNode, directoryNode } = modalState;
+  if (!listContainer) return;
+  listContainer.innerHTML = '';
+  const files = Array.isArray(payload?.files) ? payload.files : [];
+  const directory = typeof payload?.directory === 'string' && payload.directory
+    ? payload.directory
+    : state.mcpConfigDirectory || '';
+  if (directoryNode) {
+    directoryNode.textContent = directory ? `ディレクトリ: ${directory}` : 'ディレクトリ: (不明)';
+  }
+  modalState.currentFiles = files;
+  if (statusNode) {
+    statusNode.textContent = files.length
+      ? ''
+      : 'MCPディレクトリにJSONファイルが見つかりません。';
+  }
+  if (!files.length) {
+    modalState.applyButton.disabled = false;
+    return;
+  }
+
+  files.forEach((file) => {
+    if (!file || typeof file.fileName !== 'string') return;
+    const item = document.createElement('label');
+    item.className = 'kc-mcp-config-modal__item';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'kc-mcp-config-modal__checkbox';
+    checkbox.value = file.fileName;
+    checkbox.checked = Boolean(file.active);
+
+    const info = document.createElement('div');
+    info.className = 'kc-mcp-config-modal__info';
+
+    const nameLine = document.createElement('div');
+    nameLine.className = 'kc-mcp-config-modal__name';
+    nameLine.textContent = file.fileName;
+
+    const pathLine = document.createElement('div');
+    pathLine.className = 'kc-mcp-config-modal__path';
+    pathLine.textContent = file.relativePath || file.absolutePath || '';
+
+    const metaLine = document.createElement('div');
+    metaLine.className = 'kc-mcp-config-modal__meta';
+    const sizeLabel = formatFileSize(file.size);
+    const timeLabel = formatMcpTimestamp(file.mtimeMs);
+    metaLine.textContent = timeLabel ? `${sizeLabel}・${timeLabel}` : sizeLabel;
+
+    info.append(nameLine);
+    if (pathLine.textContent) {
+      info.append(pathLine);
+    }
+    info.append(metaLine);
+
+    item.append(checkbox, info);
+    listContainer.append(item);
+  });
+}
+
+async function refreshMcpConfigModal(modalState) {
+  if (!modalState) return;
+  const { applyButton, refreshButton, statusNode } = modalState;
+  modalState.loading = true;
+  if (applyButton) applyButton.disabled = true;
+  if (refreshButton) refreshButton.disabled = true;
+  if (statusNode) statusNode.textContent = '読み込み中...';
+  try {
+    const payload = await updateMcpConfigSummary({ silent: false });
+    renderMcpConfigList(modalState, payload || {});
+    if (statusNode && (!payload || !Array.isArray(payload.files))) {
+      statusNode.textContent = '設定ファイルを取得できませんでした。';
+    }
+  } catch (err) {
+    if (statusNode) {
+      statusNode.textContent = `読み込みに失敗しました: ${err.message}`;
+    }
+    console.error('[Showcase] MCP config list refresh failed', err);
+  } finally {
+    modalState.loading = false;
+    if (applyButton) applyButton.disabled = false;
+    if (refreshButton) refreshButton.disabled = false;
+  }
+}
+
+async function applyMcpConfigSelection(modalState) {
+  if (!modalState || modalState.loading) return;
+  const {
+    form,
+    statusNode,
+    applyButton,
+    refreshButton
+  } = modalState;
+  if (!form) return;
+  const selected = Array.from(form.querySelectorAll('input[type="checkbox"]'))
+    .filter((input) => input.checked)
+    .map((input) => input.value);
+  modalState.loading = true;
+  if (applyButton) applyButton.disabled = true;
+  if (refreshButton) refreshButton.disabled = true;
+  if (statusNode) statusNode.textContent = '保存中...';
+  try {
+    startEngineLoadingOverlay('MCP一覧を更新中...');
+    const target = resolveUrl(`${API_BASE}/config-files`);
+    const res = await fetch(target, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files: selected })
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || `HTTP ${res.status}`);
+    }
+    await updateMcpConfigSummary({ silent: true });
+    closeMcpConfigModal();
+    clearAllSelections({ clearInputs: true });
+    try {
+      await loadCatalog();
+    } catch (err) {
+      console.error('[Showcase] catalog reload failed after MCP config update', err);
+    }
+  } catch (err) {
+    console.error('[Showcase] MCP config update failed', err);
+    if (statusNode) {
+      statusNode.textContent = `保存に失敗しました: ${err.message}`;
+    }
+    stopEngineLoadingOverlay();
+  } finally {
+    modalState.loading = false;
+    if (activeMcpConfigModal) {
+      if (applyButton) applyButton.disabled = false;
+      if (refreshButton) refreshButton.disabled = false;
+    }
+  }
+}
+
+async function openMcpConfigModal() {
+  if (activeMcpConfigModal) {
+    closeMcpConfigModal();
+  }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'kc-mcp-config-modal';
+
+  const panel = document.createElement('div');
+  panel.className = 'kc-mcp-config-modal__panel';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+
+  const form = document.createElement('form');
+  form.className = 'kc-mcp-config-modal__form';
+
+  const header = document.createElement('div');
+  header.className = 'kc-mcp-config-modal__header';
+
+  const title = document.createElement('h3');
+  title.className = 'kc-mcp-config-modal__title';
+  title.id = 'kc-mcp-config-modal-title';
+  title.textContent = 'MCP設定ファイル';
+  panel.setAttribute('aria-labelledby', title.id);
+
+  const headerControls = document.createElement('div');
+  headerControls.className = 'kc-mcp-config-modal__header-controls';
+
+  const refreshButton = document.createElement('button');
+  refreshButton.type = 'button';
+  refreshButton.className = 'kc-button kc-button--ghost';
+  refreshButton.textContent = '再読み込み';
+
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.className = 'kc-mcp-config-modal__close';
+  closeButton.setAttribute('aria-label', '閉じる');
+  closeButton.innerHTML = '&times;';
+
+  headerControls.append(refreshButton, closeButton);
+  header.append(title, headerControls);
+
+  const body = document.createElement('div');
+  body.className = 'kc-mcp-config-modal__body';
+
+  const directoryNode = document.createElement('div');
+  directoryNode.className = 'kc-mcp-config-modal__directory';
+  directoryNode.textContent = state.mcpConfigDirectory
+    ? `ディレクトリ: ${state.mcpConfigDirectory}`
+    : 'ディレクトリ: (読み込み待ち)';
+
+  const listContainer = document.createElement('div');
+  listContainer.className = 'kc-mcp-config-modal__list';
+
+  const statusNode = document.createElement('div');
+  statusNode.className = 'kc-mcp-config-modal__status';
+
+  body.append(directoryNode, listContainer, statusNode);
+
+  const footer = document.createElement('div');
+  footer.className = 'kc-mcp-config-modal__footer';
+
+  const cancelButton = document.createElement('button');
+  cancelButton.type = 'button';
+  cancelButton.className = 'kc-button kc-button--ghost';
+  cancelButton.textContent = 'キャンセル';
+
+  const applyButton = document.createElement('button');
+  applyButton.type = 'submit';
+  applyButton.className = 'kc-button kc-button--primary';
+  applyButton.textContent = '適用';
+
+  footer.append(cancelButton, applyButton);
+
+  form.append(header, body, footer);
+  panel.append(form);
+  overlay.append(panel);
+  document.body.append(overlay);
+  document.body.classList.add('kc-mcp-config-modal-open');
+
+  const modalState = {
+    overlay,
+    panel,
+    form,
+    listContainer,
+    statusNode,
+    directoryNode,
+    applyButton,
+    refreshButton,
+    loading: false,
+    currentFiles: []
+  };
+
+  const onKeyDown = (evt) => {
+    if (evt.key === 'Escape') {
+      closeMcpConfigModal();
+    }
+  };
+  document.addEventListener('keydown', onKeyDown);
+  modalState.onKeyDown = onKeyDown;
+
+  overlay.addEventListener('click', (evt) => {
+    if (evt.target === overlay) {
+      closeMcpConfigModal();
+    }
+  });
+
+  closeButton.addEventListener('click', (evt) => {
+    evt.preventDefault();
+    closeMcpConfigModal();
+  });
+
+  cancelButton.addEventListener('click', (evt) => {
+    evt.preventDefault();
+    closeMcpConfigModal();
+  });
+
+  refreshButton.addEventListener('click', (evt) => {
+    evt.preventDefault();
+    refreshMcpConfigModal(modalState).catch((err) => {
+      console.error('[Showcase] MCP config manual refresh failed', err);
+    });
+  });
+
+  form.addEventListener('submit', (evt) => {
+    evt.preventDefault();
+    applyMcpConfigSelection(modalState).catch((err) => {
+      console.error('[Showcase] MCP config apply error', err);
+    });
+  });
+
+  activeMcpConfigModal = modalState;
+
+  await refreshMcpConfigModal(modalState);
+}
+
+function startEngineLoadingOverlay(message = '読み込み中...') {
+  const host = document.querySelector('.kc-panel__body--engines');
+  if (!host) return;
+  if (!engineLoadingOverlay || !engineLoadingOverlay.isConnected) {
+    engineLoadingOverlay = document.createElement('div');
+    engineLoadingOverlay.className = 'kc-engines__loading-overlay';
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'kc-engines__loading-backdrop';
+
+    const content = document.createElement('div');
+    content.className = 'kc-engines__loading-content';
+
+    const spinner = document.createElement('div');
+    spinner.className = 'kc-spinner';
+
+    const label = document.createElement('div');
+    label.className = 'kc-engines__loading-text';
+    label.textContent = message;
+
+    content.append(spinner, label);
+    engineLoadingOverlay.append(backdrop, content);
+  } else {
+    const label = engineLoadingOverlay.querySelector('.kc-engines__loading-text');
+    if (label) {
+      label.textContent = message;
+    }
+  }
+
+  host.classList.add('is-loading');
+  host.append(engineLoadingOverlay);
+}
+
+function stopEngineLoadingOverlay() {
+  const host = document.querySelector('.kc-panel__body--engines');
+  if (host) {
+    host.classList.remove('is-loading');
+  }
+  if (engineLoadingOverlay && engineLoadingOverlay.isConnected) {
+    engineLoadingOverlay.remove();
+  }
 }
 
 function openTemplateEditor(options = {}) {
@@ -10107,19 +7856,26 @@ function positionTemplateMenu(menu, anchor) {
 
 function applyTemplate(template) {
   if (!template) return;
-  state.prompt = template.prompt;
-  if (typeof template.soundText === 'string') {
-    state.soundText = template.soundText;
-  } else if (normalizeCategory(template.category) === 'sound') {
+  const context = cloneTemplateContext(template);
+  const normalizedCategory = normalizeCategory(context?.category || template.category || state.activeCategory);
+  state.prompt = context?.prompt || (typeof template.prompt === 'string' ? template.prompt : '');
+  if (typeof (context?.soundText ?? template.soundText) === 'string' && (context?.soundText ?? template.soundText)) {
+    state.soundText = (context?.soundText ?? template.soundText) || '';
+  } else if (normalizedCategory === 'sound') {
     state.soundText = '';
   }
-  const templatePrefix = typeof template.filePrefix === 'string' ? template.filePrefix.trim() : '';
+  const templatePrefix = context?.filePrefix || (typeof template.filePrefix === 'string' ? template.filePrefix.trim() : '');
   if (templatePrefix) {
-    setFilePrefix(templatePrefix);
+    setFilePrefix(templatePrefix, { skipTemplateOverride: true });
   }
   syncPromptPreview();
   updateRunButtonState();
   syncSoundTextField({ preferExisting: false });
+  setActiveTemplateContext({
+    ...context,
+    category: normalizedCategory,
+    appliedAt: Date.now()
+  });
   const promptField = document.getElementById('kc-prompt');
   if (promptField) {
     delete promptField.dataset.manualResize;
@@ -10127,6 +7883,24 @@ function applyTemplate(template) {
     promptField.focus({ preventScroll: true });
     const end = promptField.value.length;
     promptField.setSelectionRange(end, end);
+  }
+}
+
+function resetTemplateState({ focusPrompt = true } = {}) {
+  clearActiveTemplateContext();
+  state.prompt = '';
+  updateActiveTemplateOverrides();
+  syncPromptPreview();
+  state.soundText = '';
+  applySoundTextToInputs('');
+  syncSoundTextField({ preferExisting: false });
+  setFilePrefix('', { persist: true });
+  updateRunButtonState();
+  if (focusPrompt) {
+    const promptField = document.getElementById('kc-prompt');
+    if (promptField) {
+      promptField.focus({ preventScroll: true });
+    }
   }
 }
 
@@ -10266,17 +8040,24 @@ function addTemplateFromPrompt(options = {}) {
       if (anchor) {
         openTemplateMenu(anchor);
       }
+      let templateTouched = false;
       if (!state.prompt.trim()) {
         state.prompt = prompt;
+        templateTouched = true;
         syncPromptPreview();
         updateRunButtonState();
       }
       if (filePrefix) {
         setFilePrefix(filePrefix);
+        templateTouched = true;
       }
       if (normalizeCategory(category) === 'sound') {
         state.soundText = soundText || '';
         syncSoundTextField({ preferExisting: false });
+        templateTouched = true;
+      }
+      if (templateTouched) {
+        updateActiveTemplateOverrides();
       }
     }
   });
@@ -10537,10 +8318,12 @@ function populateTemplateMenu(menu) {
             state.prompt = prompt;
             syncPromptPreview();
             updateRunButtonState();
+            updateActiveTemplateOverrides();
           }
           if (normalizeCategory(category) === 'sound') {
             state.soundText = soundText || '';
             syncSoundTextField({ preferExisting: false });
+            updateActiveTemplateOverrides();
           }
           return true;
         },
@@ -10549,17 +8332,24 @@ function populateTemplateMenu(menu) {
           if (anchorBtn) {
             openTemplateMenu(anchorBtn);
           }
+          let templateTouched = false;
           if (!state.prompt.trim()) {
             state.prompt = prompt;
+            templateTouched = true;
             syncPromptPreview();
             updateRunButtonState();
           }
           if (filePrefix) {
             setFilePrefix(filePrefix);
+            templateTouched = true;
           }
           if (normalizeCategory(category) === 'sound') {
             state.soundText = soundText || '';
             syncSoundTextField({ preferExisting: false });
+            templateTouched = true;
+          }
+          if (templateTouched) {
+            updateActiveTemplateOverrides();
           }
         }
       });
@@ -10868,6 +8658,7 @@ function ingestHistoryEntries(entries) {
         const rawResults = Array.isArray(entry.results)
           ? entry.results.map((item) => ({ ...item }))
           : [];
+        const entryTemplateContext = normalizeTemplateContext(entry.templateContext);
         const sanitizedResults = rawResults.map((item) => {
           const typePrefix = resolveTypePrefix([
             item.type,
@@ -10875,7 +8666,7 @@ function ingestHistoryEntries(entries) {
             item.sourceCategory,
             extractEnginePrefix(item.engineId || item.label || '')
           ]);
-          return {
+          const result = {
             ...item,
             imageUrl: normalizeShowcaseAssetUrl(item.imageUrl),
             logFile: item.logFile ? normalizeShowcaseAssetUrl(item.logFile) : item.logFile,
@@ -10885,6 +8676,13 @@ function ingestHistoryEntries(entries) {
               ? item.typePrefixes.map((prefix) => normalizeTypeToken(prefix)).filter(Boolean)
               : (typePrefix ? [typePrefix] : [])
           };
+          const contextual = normalizeTemplateContext(item.templateContext, entryTemplateContext);
+          if (contextual) {
+            result.templateContext = cloneTemplateContext(contextual);
+          } else if (entryTemplateContext) {
+            result.templateContext = cloneTemplateContext(entryTemplateContext);
+          }
+          return result;
         });
         const sourcePrefixSet = new Set();
         if (Array.isArray(entry.sourceCategories) && entry.sourceCategories.length) {
@@ -10915,7 +8713,8 @@ function ingestHistoryEntries(entries) {
           createdAt: Number.isFinite(entry.createdAt) ? entry.createdAt : Date.now(),
           category,
           sourceCategories,
-          results: sanitizedResults
+          results: sanitizedResults,
+          templateContext: entryTemplateContext ? cloneTemplateContext(entryTemplateContext) : null
         };
       }).filter(Boolean)
     : [];
@@ -10924,6 +8723,7 @@ function ingestHistoryEntries(entries) {
   state.history = MAX_HISTORY_ENTRIES === Number.POSITIVE_INFINITY
     ? sorted
     : sorted.slice(0, MAX_HISTORY_ENTRIES);
+  state.historyVisibleCount = HISTORY_DEFAULT_VISIBLE_COUNT;
 
   SUPPORTED_CATEGORIES.forEach((cat) => {
     ensureCategoryCollections(cat);
@@ -10945,6 +8745,7 @@ function ingestHistoryEntries(entries) {
     state.activeCategory = DEFAULT_ACTIVE_CATEGORY;
     state.historyFilters.category = 'all';
     state.historyFilters.prefix = 'all';
+    state.historyVisibleCount = HISTORY_DEFAULT_VISIBLE_COUNT;
     SUPPORTED_CATEGORIES.forEach((cat) => {
       state.resultsByCategory[cat] = [];
     });
@@ -10959,29 +8760,19 @@ async function loadHistoryFromStorage() {
   let fallbackVersion = 1;
   let filters = null;
   const loadLocalHistory = () => {
-    try {
-      const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
-      if (!raw) return null;
-      let parsed;
-      try {
-        parsed = JSON.parse(raw);
-      } catch (parseErr) {
-        console.warn('[Showcase] history local cache parse failed', parseErr);
-        localStorage.removeItem(HISTORY_STORAGE_KEY);
-        return null;
-      }
-      if (Array.isArray(parsed)) {
-        return { version: 1, entries: parsed, filters: null };
-      }
-      if (parsed && Array.isArray(parsed.entries)) {
-        return {
-          version: Number.isFinite(parsed.version) ? parsed.version : 1,
-          entries: parsed.entries,
-          filters: parsed.filters || null
-        };
-      }
-    } catch (storageErr) {
-      console.warn('[Showcase] history local load failed', storageErr);
+    const parsed = preferenceStorage.readJson(HISTORY_STORAGE_KEY, {
+      label: 'history local load failed',
+      parseLabel: 'history local cache parse failed'
+    });
+    if (Array.isArray(parsed)) {
+      return { version: 1, entries: parsed, filters: null };
+    }
+    if (parsed && Array.isArray(parsed.entries)) {
+      return {
+        version: Number.isFinite(parsed.version) ? parsed.version : 1,
+        entries: parsed.entries,
+        filters: parsed.filters || null
+      };
     }
     return null;
   };
@@ -11000,15 +8791,13 @@ async function loadHistoryFromStorage() {
         entries = response.entries;
         fallbackVersion = Number.isFinite(response.version) ? response.version : fallbackVersion;
         filters = sanitizeHistoryFilters(response.filters);
-        try {
-          localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify({
-            version: fallbackVersion,
-            entries,
-            filters
-          }));
-        } catch (cacheErr) {
-          console.warn('[Showcase] history cache update failed', cacheErr);
-        }
+        preferenceStorage.writeJson(HISTORY_STORAGE_KEY, {
+          version: fallbackVersion,
+          entries,
+          filters
+        }, {
+          label: 'history cache update failed'
+        });
       }
     } catch (err) {
       console.warn('[Showcase] history fetch failed', err);
@@ -11017,22 +8806,20 @@ async function loadHistoryFromStorage() {
 
   if (!entries) {
     try {
-      const res = await fetch('/data/kamui-code/history.json', { cache: 'no-cache' });
+      const res = await fetch('/data/showcase/history.json', { cache: 'no-cache' });
       if (res.ok) {
         const json = await res.json();
         if (json && Array.isArray(json.entries)) {
           entries = json.entries;
           fallbackVersion = Number.isFinite(json.version) ? json.version : fallbackVersion;
           filters = sanitizeHistoryFilters(json.filters);
-          try {
-            localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify({
-              version: fallbackVersion,
-              entries,
-              filters
-            }));
-          } catch (persistErr) {
-            console.warn('[Showcase] history fallback cache failed', persistErr);
-          }
+          preferenceStorage.writeJson(HISTORY_STORAGE_KEY, {
+            version: fallbackVersion,
+            entries,
+            filters
+          }, {
+            label: 'history fallback cache failed'
+          });
         }
       }
     } catch (staticErr) {
@@ -11048,9 +8835,14 @@ async function loadHistoryFromStorage() {
 
 function flattenCurrentRunResults() {
   const aggregated = [];
+  const snapshot = createTemplateContextSnapshot(state.currentRunTemplateContext || state.activeTemplateContext);
   state.currentRunResults.forEach((items) => {
     items.forEach((item) => {
-      aggregated.push({ ...item });
+      const record = { ...item };
+      if (!record.templateContext && snapshot) {
+        record.templateContext = cloneTemplateContext(snapshot);
+      }
+      aggregated.push(record);
     });
   });
   return aggregated;
@@ -11088,7 +8880,8 @@ function ensureHistoryEntryForCurrentRun({ prompt, category, jobId } = {}) {
       category: normalizedCategory,
       sourceCategories: [],
       results: [],
-      jobId: jobId || ''
+      jobId: jobId || '',
+      templateContext: cloneTemplateContext(state.currentRunTemplateContext || state.activeTemplateContext)
     };
     state.currentHistoryEntryId = entry.id;
     state.history = [entry, ...state.history].slice(0, MAX_HISTORY_ENTRIES);
@@ -11096,6 +8889,9 @@ function ensureHistoryEntryForCurrentRun({ prompt, category, jobId } = {}) {
     entry.jobId = jobId || entry.jobId || '';
     if (prompt) entry.prompt = prompt;
     entry.category = normalizedCategory;
+  }
+  if (!entry.templateContext) {
+    entry.templateContext = cloneTemplateContext(state.currentRunTemplateContext || state.activeTemplateContext);
   }
   if (!state.historyManualSelection || state.historyActiveId === entry.id) {
     state.historyActiveId = entry.id;
@@ -11106,7 +8902,19 @@ function ensureHistoryEntryForCurrentRun({ prompt, category, jobId } = {}) {
 function syncHistoryEntryFromCurrentResults(entry, { prompt, category } = {}) {
   if (!entry) return;
   const aggregated = flattenCurrentRunResults();
-  entry.results = aggregated.map((item) => ({ ...item }));
+  const contextSnapshot = entry.templateContext
+    ? cloneTemplateContext(entry.templateContext)
+    : cloneTemplateContext(state.currentRunTemplateContext || state.activeTemplateContext);
+  entry.results = aggregated.map((item) => {
+    const result = { ...item };
+    if (!result.templateContext && contextSnapshot) {
+      result.templateContext = cloneTemplateContext(contextSnapshot);
+    }
+    return result;
+  });
+  if (!entry.templateContext && contextSnapshot) {
+    entry.templateContext = cloneTemplateContext(contextSnapshot);
+  }
   const normalizedCategory = normalizeCategory(category || entry.category || DEFAULT_ACTIVE_CATEGORY);
   entry.category = normalizedCategory;
   if (typeof prompt === 'string' && prompt) {
@@ -11272,6 +9080,7 @@ function renderHistory() {
       if (state.historyFilters.category === value) return;
       state.historyFilters.category = value;
       state.historyFilters.prefix = 'all';
+      state.historyVisibleCount = HISTORY_DEFAULT_VISIBLE_COUNT;
       renderHistory();
     }, (option) => option.id, 'カテゴリフィルタ', {
       tabsClass: 'kc-history-filter-tabs--category',
@@ -11306,6 +9115,7 @@ function renderHistory() {
           state.historyFilters.category = 'all';
         }
       }
+      state.historyVisibleCount = HISTORY_DEFAULT_VISIBLE_COUNT;
       renderHistory();
     }, typeThemeFallback, 'タイプフィルタ', {
       tabsClass: 'kc-history-filter-tabs--type',
@@ -11381,10 +9191,37 @@ function renderHistory() {
     }
   }
 
+  const totalEntries = filteredEntries.length;
+  let desiredVisible = Number.isFinite(state.historyVisibleCount) && state.historyVisibleCount > 0
+    ? state.historyVisibleCount
+    : HISTORY_DEFAULT_VISIBLE_COUNT;
+  desiredVisible = Math.min(totalEntries, Math.max(1, desiredVisible || HISTORY_DEFAULT_VISIBLE_COUNT));
+  const activeIndex = filteredEntries.findIndex((entry) => entry.id === state.historyActiveId);
+  if (activeIndex >= 0 && activeIndex >= desiredVisible) {
+    const batchesNeeded = Math.ceil((activeIndex + 1) / HISTORY_VISIBLE_INCREMENT);
+    desiredVisible = Math.min(totalEntries, Math.max(desiredVisible, batchesNeeded * HISTORY_VISIBLE_INCREMENT));
+  }
+  state.historyVisibleCount = desiredVisible || Math.min(totalEntries, HISTORY_DEFAULT_VISIBLE_COUNT);
+  const visibleEntries = filteredEntries.slice(0, state.historyVisibleCount);
+
+  const canLoadMore = visibleEntries.length < totalEntries;
+
+  if (countLabel) {
+    countLabel.textContent = '';
+    countLabel.style.display = 'none';
+  }
+  if (footer) {
+    footer.style.display = 'none';
+    const existingMore = footer.querySelector('#kc-history-loadmore');
+    if (existingMore) {
+      existingMore.remove();
+    }
+  }
+
   const list = document.createElement('div');
   list.className = 'kc-history-list';
 
-  filteredEntries.forEach((entry) => {
+  visibleEntries.forEach((entry) => {
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'kc-history-card';
@@ -11395,25 +9232,68 @@ function renderHistory() {
       card.setAttribute('aria-pressed', 'false');
     }
 
+    const templateContext = resolveEntryTemplateContext(entry);
+    if (!entry.templateContext && templateContext) {
+      entry.templateContext = cloneTemplateContext(templateContext);
+    }
+    if (templateContext && Array.isArray(entry.results)) {
+      entry.results.forEach((result) => {
+        if (result && !result.templateContext) {
+          result.templateContext = cloneTemplateContext(templateContext, result.templateContext);
+        }
+      });
+    }
+
     const header = document.createElement('div');
     header.className = 'kc-history-card__header';
-    const categoryTag = document.createElement('span');
-    categoryTag.className = 'kc-history-card__category kc-badge kc-badge--micro';
+    const badgeRow = document.createElement('div');
+    badgeRow.className = 'kc-history-card__badge-row';
     const displayCategory = inferCategoryFromTokens([
       entry.category,
       ...(Array.isArray(entry.sourceCategories) ? entry.sourceCategories : []),
       ...(Array.isArray(entry.results) ? entry.results.map((res) => res.type || res.sourceCategory || res.category) : [])
     ], entry.category);
+    const categoryTag = document.createElement('span');
+    categoryTag.className = 'kc-history-card__category kc-badge kc-badge--micro';
     categoryTag.textContent = categoryLabel(displayCategory);
     applyBadgeTheme(categoryTag, displayCategory, { fallbackCategory: displayCategory });
-    header.append(categoryTag);
+    badgeRow.append(categoryTag);
+
     const sourceCategories = Array.isArray(entry.sourceCategories)
       ? entry.sourceCategories.filter((src) => typeof src === 'string' && src.trim())
       : [];
-    if (sourceCategories.length) {
+    const primaryTypeToken = (() => {
+      if (templateContext?.type) {
+        return normalizeTypeToken(templateContext.type);
+      }
+      if (sourceCategories.length) {
+        return normalizeTypeToken(sourceCategories[0]);
+      }
+      return '';
+    })();
+    const renderedPrimaryType = primaryTypeToken ? primaryTypeToken.toUpperCase() : '';
+    if (renderedPrimaryType) {
+      const typeBadge = document.createElement('span');
+      typeBadge.className = 'kc-history-card__type-primary kc-badge kc-badge--micro';
+      typeBadge.textContent = renderedPrimaryType;
+      applyBadgeTheme(typeBadge, primaryTypeToken, { fallbackCategory: displayCategory });
+      badgeRow.append(typeBadge);
+    }
+    if (templateContext?.name) {
+      const nameEl = document.createElement('div');
+      nameEl.className = 'kc-history-card__template-name';
+      nameEl.textContent = templateContext.name;
+      nameEl.title = templateContext.name;
+      badgeRow.append(nameEl);
+    }
+
+    header.append(badgeRow);
+
+    const remainingCategories = sourceCategories.filter((src) => normalizeTypeToken(src) !== primaryTypeToken);
+    if (remainingCategories.length) {
       const typesTag = document.createElement('div');
       typesTag.className = 'kc-history-card__types';
-      sourceCategories.forEach((src) => {
+      remainingCategories.forEach((src) => {
         const badge = document.createElement('span');
         badge.className = 'kc-history-card__type kc-badge kc-badge--micro';
         const normalized = String(src).trim();
@@ -11458,12 +9338,12 @@ function renderHistory() {
         });
         if (mediaType === 'video') {
           const video = document.createElement('video');
-          video.src = res.imageUrl;
           video.muted = true;
           video.playsInline = true;
           video.preload = 'metadata';
           video.autoplay = false;
           video.className = 'kc-history-card__video';
+          applyAssetSrcWithFallback(video, res.imageUrl, { type: 'video' });
           applyLoopSettingToMedia(video);
           bindShowcaseMediaLifecycle(video, {
             src: res.imageUrl,
@@ -11475,12 +9355,12 @@ function renderHistory() {
         } else if (mediaType === 'sound') {
           cell.classList.add('is-sound');
           const audio = document.createElement('audio');
-          audio.src = res.imageUrl;
           audio.controls = false;
           audio.preload = 'metadata';
           audio.className = 'kc-history-card__audio';
           audio.setAttribute('aria-hidden', 'true');
           audio.tabIndex = -1;
+          applyAssetSrcWithFallback(audio, res.imageUrl, { type: 'audio' });
           applyLoopSettingToMedia(audio);
           bindShowcaseMediaLifecycle(audio, {
             src: res.imageUrl,
@@ -11511,7 +9391,7 @@ function renderHistory() {
           }
         } else {
           const img = document.createElement('img');
-          img.src = res.imageUrl;
+          applyAssetSrcWithFallback(img, res.imageUrl);
           img.alt = entry.prompt || entry.id;
           cell.appendChild(img);
         }
@@ -11524,12 +9404,24 @@ function renderHistory() {
       thumbsWrap.appendChild(cell);
     });
 
+    const textBlock = document.createElement('div');
+    textBlock.className = 'kc-history-card__text';
+    const memoText = (templateContext?.memo || '').trim();
+    if (memoText) {
+      const memoEl = document.createElement('div');
+      memoEl.className = 'kc-history-card__memo';
+      memoEl.textContent = memoText;
+      textBlock.append(memoEl);
+    }
     const promptText = (entry.prompt || '').trim();
-    let prompt = null;
     if (promptText) {
-      prompt = document.createElement('div');
-      prompt.className = 'kc-history-card__prompt';
-      prompt.textContent = `「${promptText}」`;
+      const promptEl = document.createElement('div');
+      promptEl.className = 'kc-history-card__prompt';
+      if (memoText) {
+        promptEl.classList.add('has-memo');
+      }
+      promptEl.textContent = promptText;
+      textBlock.append(promptEl);
     }
 
     let failureNotice = null;
@@ -11559,7 +9451,9 @@ function renderHistory() {
     if (failureNotice) {
       card.append(failureNotice);
     }
-    if (prompt) card.append(prompt);
+    if (textBlock.childElementCount > 0) {
+      card.append(textBlock);
+    }
     card.append(actions);
     card.addEventListener('click', () => {
       setHistoryActiveId(entry.id, { syncEngine: false, userInitiated: true });
@@ -11569,6 +9463,39 @@ function renderHistory() {
   });
 
   body.append(list);
+
+  const inlineFooter = document.createElement('div');
+  inlineFooter.className = 'kc-history-inlinefooter';
+  const inlineCount = document.createElement('span');
+  inlineCount.className = 'kc-history-inlinefooter__count';
+  inlineCount.textContent = `表示中：${visibleEntries.length}/全${totalEntries}件`;
+  list.append(inlineFooter);
+
+  inlineFooter.append(inlineCount);
+
+  if (canLoadMore) {
+    const loadMoreBtn = document.createElement('button');
+    loadMoreBtn.type = 'button';
+    loadMoreBtn.className = 'kc-button kc-button--ghost kc-history-inlinefooter__loadmore';
+    const nextCount = Math.min(totalEntries, state.historyVisibleCount + HISTORY_VISIBLE_INCREMENT);
+    loadMoreBtn.innerHTML = 'さらに30件<br>読み込む';
+    loadMoreBtn.setAttribute('aria-label', `履歴をさらに30件読み込む (${visibleEntries.length}件から${nextCount}件まで表示)`);
+    loadMoreBtn.addEventListener('click', () => {
+      const previousScrollTop = body ? body.scrollTop : 0;
+      const updated = Math.min(totalEntries, state.historyVisibleCount + HISTORY_VISIBLE_INCREMENT);
+      if (updated !== state.historyVisibleCount) {
+        state.historyVisibleCount = updated;
+        renderHistory();
+        requestAnimationFrame(() => {
+          if (body) {
+            body.scrollTop = previousScrollTop;
+          }
+        });
+      }
+    });
+    inlineFooter.append(loadMoreBtn);
+  }
+
   const activeEntry = getActiveHistoryEntry();
   if (activeEntry) {
     const resultsContainer = document.getElementById('kc-results');
@@ -11578,6 +9505,7 @@ function renderHistory() {
     footer.style.display = 'none';
   }
   updateBatchControlVisuals();
+  scheduleShowcaseLayoutSync();
 }
 
 function renderParameterFields(engineMeta, paramsContainer) {
@@ -11647,8 +9575,14 @@ function renderParameterFields(engineMeta, paramsContainer) {
     const fieldId = `kc-param-${engineMeta.id}-${key}`;
 
     let options = extractEnumOptions(schema, key);
+    const optionHint = ENGINE_PARAMETER_OPTION_HINTS[engineMeta.id]
+      ? ENGINE_PARAMETER_OPTION_HINTS[engineMeta.id][key]
+      : null;
     const manualOptions = getManualParameterOptions(engineMeta, key, schema);
-    if (manualOptions.length) {
+    const replaceSchemaOptions = optionHint && typeof optionHint === 'object' && optionHint.replace === true;
+    if (replaceSchemaOptions) {
+      options = manualOptions.slice();
+    } else if (manualOptions.length) {
       options = mergeManualParameterOptions(options, manualOptions, schema);
     }
     const suppressSet = ENGINE_PARAMETER_OPTION_SUPPRESS[engineMeta.id];
@@ -11730,6 +9664,7 @@ function renderParameterFields(engineMeta, paramsContainer) {
         control.placeholder = SOUND_TEXT_PLACEHOLDER;
         if (!state.soundText || !state.soundText.trim()) {
           state.soundText = formattedInitial || '';
+          updateActiveTemplateOverrides();
         }
         soundTextFieldPresent = true;
       }
@@ -11737,6 +9672,7 @@ function renderParameterFields(engineMeta, paramsContainer) {
         inputStore[key] = coerceParameterValue(schema, control.value);
         if (isSoundTextField) {
           state.soundText = control.value || '';
+          updateActiveTemplateOverrides();
           syncSoundTextField({ preferExisting: false });
         }
       };
@@ -11920,12 +9856,13 @@ function renderEngineCards(categoryId, container, options = {}) {
 
     const showParams = () => {
       cancelParamsPopoverClose();
-      openParamsPopover(engineMeta, detailBtn);
+      openParamsPopover(engineMeta, detailBtn, { renderParameterFields });
     };
 
     const hideParams = (evt) => {
-      if (!activeParamsPopover || activeParamsPopover.anchor !== detailBtn) return;
-      if (evt && evt.relatedTarget && activeParamsPopover.popover?.contains(evt.relatedTarget)) {
+      const activePopover = getActiveParamsPopover();
+      if (!activePopover || activePopover.anchor !== detailBtn) return;
+      if (evt && evt.relatedTarget && activePopover.popover?.contains(evt.relatedTarget)) {
         return;
       }
       if (isParamsPopoverEngaged()) {
@@ -11981,7 +9918,6 @@ function renderEngineCards(categoryId, container, options = {}) {
           requiredSoundTextKeys: Array.isArray(engineMeta.requiredSoundTextKeys)
             ? engineMeta.requiredSoundTextKeys.slice()
             : [],
-          documentationUrl: engineMeta.documentationUrl || '',
           docSummaryEn: engineMeta.docSummaryEn || '',
           docSummaryJa: engineMeta.docSummaryJa || ''
         });
@@ -12003,297 +9939,7 @@ function renderEngineCards(categoryId, container, options = {}) {
   });
 }
 
-function renderMediaSection(container) {
-  container.innerHTML = '';
 
-  renderSelectionSummary();
-
-  const controls = document.createElement('div');
-  controls.className = 'kc-media-controls irs-source-controls';
-
-  const filterWrap = document.createElement('div');
-  filterWrap.className = 'kc-media-filters';
-  const filterLabel = document.createElement('span');
-  filterLabel.className = 'kc-media-filter-label';
-  filterLabel.textContent = 'INPUT';
-  filterWrap.appendChild(filterLabel);
-
-  const filterTrack = document.createElement('div');
-  filterTrack.className = 'kc-media-filter-track';
-  filterWrap.appendChild(filterTrack);
-  MEDIA_FILTERS.forEach((filter) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'kc-media-filter kc-panel-tab';
-    applyBadgeTheme(btn, filter.id, { fallbackCategory: filter.id });
-    if (state.media.typeFilter === filter.id) {
-      btn.classList.add('is-active');
-    }
-    btn.textContent = filter.label.toUpperCase();
-    btn.setAttribute('aria-pressed', state.media.typeFilter === filter.id ? 'true' : 'false');
-    btn.setAttribute('aria-label', `${filter.label.toUpperCase()} INPUTメディアを表示`);
-    btn.addEventListener('click', () => {
-      if (state.media.typeFilter === filter.id) return;
-      state.media.typeFilter = filter.id;
-      applyMediaFilters();
-      renderList();
-      controls.querySelectorAll('.kc-media-filter').forEach((node) => {
-        node.classList.toggle('is-active', node === btn);
-        node.setAttribute('aria-pressed', node === btn ? 'true' : 'false');
-      });
-    });
-    filterTrack.appendChild(btn);
-  });
-
-  const wrapper = document.createElement('div');
-  wrapper.className = 'kc-media-wrapper';
-
-  const scroll = document.createElement('div');
-  scroll.className = 'kc-media-scroll';
-  wrapper.append(scroll);
-
-  const renderList = () => {
-    scroll.innerHTML = '';
-    renderSelectionSummary();
-
-    if (state.media.error) {
-      const retry = document.createElement('div');
-      retry.className = 'kc-history-empty';
-      retry.textContent = `読み込みに失敗しました: ${state.media.error}`;
-      scroll.append(retry);
-      return;
-    }
-
-    if (state.media.isLoading) {
-      const loading = document.createElement('div');
-      loading.className = 'kc-history-empty';
-      loading.textContent = '読み込み中...';
-      scroll.append(loading);
-      return;
-    }
-
-    const hasActiveFilter = state.media.typeFilter !== 'all'
-      || Boolean(state.media.searchKeyword.trim());
-    const list = state.media.filtered.length
-      ? state.media.filtered
-      : (hasActiveFilter ? [] : state.media.items);
-
-    if (!list.length) {
-      const empty = document.createElement('div');
-      empty.className = 'kc-history-empty';
-      if (hasActiveFilter) {
-        empty.textContent = '条件に一致するメディアが見つかりません';
-      } else {
-        empty.textContent = 'メディアフォルダにファイルが見つかりませんでした';
-      }
-      scroll.append(empty);
-      return;
-    }
-
-    const grid = document.createElement('div');
-    grid.className = 'irs-source-list kc-media-list';
-
-    const previewEntries = createLightboxEntriesFromSources(list);
-
-    list.forEach((item, index) => {
-      const card = document.createElement('button');
-      card.type = 'button';
-      card.className = 'irs-source-card';
-      const selectionInfo = getMediaSelectionOrderInfo(item);
-      if (selectionInfo) {
-        card.classList.add('is-active');
-      }
-
-      const thumbWrap = document.createElement('div');
-      thumbWrap.className = 'irs-source-card__thumb';
-      if (item.filterType) {
-        thumbWrap.classList.add(`irs-source-card__thumb--${item.filterType}`);
-      }
-
-      const createPreviewButton = () => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'irs-source-card__preview';
-        btn.title = 'プレビュー';
-        btn.textContent = '⤢';
-        btn.setAttribute('aria-label', `${item.name} をプレビュー`);
-        btn.addEventListener('click', (evt) => {
-          evt.stopPropagation();
-          if (item.url) {
-            openMediaLightbox(previewEntries, index);
-          }
-        });
-        return btn;
-      };
-
-      if (item.thumbUrl) {
-        const img = document.createElement('img');
-        img.src = item.thumbUrl;
-        img.alt = item.name;
-        thumbWrap.appendChild(img);
-        if (item.url) {
-          thumbWrap.appendChild(createPreviewButton());
-        }
-      } else if ((item.filterType === 'video' || item.filterType === 'sound') && item.url) {
-        if (item.filterType === 'video') {
-          const video = document.createElement('video');
-          video.src = item.url;
-          video.muted = true;
-          video.loop = true;
-          video.playsInline = true;
-          video.preload = 'metadata';
-          video.className = 'irs-source-card__video';
-          video.addEventListener('loadeddata', () => {
-            try {
-              video.currentTime = 0;
-              video.pause();
-            } catch (err) {
-              // ignore seek errors
-            }
-          });
-          thumbWrap.appendChild(video);
-          const startPreview = () => {
-            video.play().catch(() => {});
-          };
-          const stopPreview = () => {
-            try {
-              video.pause();
-              video.currentTime = 0;
-            } catch (err) {
-              // ignore pause errors
-            }
-          };
-          card.addEventListener('mouseenter', startPreview);
-          card.addEventListener('mouseleave', stopPreview);
-          card.addEventListener('focus', startPreview);
-          card.addEventListener('blur', stopPreview);
-        } else {
-          const icon = document.createElement('div');
-          icon.className = 'irs-source-card__placeholder irs-source-card__placeholder--audio';
-          icon.textContent = 'SOUND';
-          thumbWrap.appendChild(icon);
-        }
-        thumbWrap.appendChild(createPreviewButton());
-      } else if (item.filterType === '3d' && item.url) {
-        thumbWrap.classList.add('is-3d');
-        const modelHost = document.createElement('div');
-        modelHost.className = 'irs-source-card__model-host';
-        thumbWrap.appendChild(modelHost);
-        mount3dPreview(modelHost, {
-          src: item.url,
-          alt: item.name,
-          variant: 'input'
-        });
-        thumbWrap.appendChild(createPreviewButton());
-        thumbWrap.addEventListener('dblclick', (evt) => {
-          if (!item.url) return;
-          if (evt.target && evt.target.closest('.irs-source-card__preview')) {
-            return;
-          }
-          const viewer = thumbWrap.querySelector('model-viewer');
-          if (!viewer) return;
-          if (evt.target === viewer || viewer.contains(evt.target)) {
-            evt.preventDefault();
-            evt.stopPropagation();
-            openMediaLightbox(previewEntries, index);
-          }
-        });
-      } else {
-        thumbWrap.classList.add('irs-source-card__thumb--empty');
-        const placeholder = document.createElement('div');
-        placeholder.className = 'irs-source-card__placeholder';
-        placeholder.textContent = (item.filterType || 'other').toUpperCase();
-        thumbWrap.appendChild(placeholder);
-        if (item.url) {
-          thumbWrap.appendChild(createPreviewButton());
-        }
-      }
-
-      if (selectionInfo) {
-        const badge = document.createElement('span');
-        badge.className = 'kc-media-selection-order';
-        const typeClass = selectionInfo.type ? `kc-media-selection-order--${selectionInfo.type}` : '';
-        if (typeClass) badge.classList.add(typeClass);
-        badge.textContent = String(selectionInfo.order);
-        badge.setAttribute('aria-label', `${(MEDIA_TYPE_DISPLAY[selectionInfo.type]?.label || selectionInfo.type || 'MEDIA')} #${selectionInfo.order}`);
-        thumbWrap.appendChild(badge);
-      }
-
-      const meta = document.createElement('div');
-      meta.className = 'irs-source-card__meta';
-      const name = document.createElement('span');
-      name.className = 'irs-source-card__name';
-      name.title = item.name;
-      name.textContent = item.name;
-      meta.appendChild(name);
-
-      const typeChip = document.createElement('span');
-      typeChip.className = 'irs-source-card__type';
-      typeChip.textContent = (item.filterType || 'other').toUpperCase();
-      meta.appendChild(typeChip);
-
-      card.append(thumbWrap, meta);
-
-      card.addEventListener('click', () => {
-        toggleMediaSelection(item);
-        renderList();
-        updateRunButtonState();
-      });
-
-      grid.appendChild(card);
-    });
-
-    scroll.append(grid);
-
-    renderSelectionSummary();
-  };
-
-  const searchWrap = document.createElement('div');
-  searchWrap.className = 'irs-search';
-  const searchInput = document.createElement('input');
-  searchInput.type = 'search';
-  searchInput.placeholder = 'INPUTメディアを検索';
-  searchInput.setAttribute('aria-label', 'INPUTメディア検索');
-  searchInput.value = state.media.searchKeyword;
-  searchInput.addEventListener('input', () => {
-    state.media.searchKeyword = searchInput.value;
-    applyMediaFilters();
-    renderList();
-  });
-  searchWrap.appendChild(searchInput);
-
-  const sortWrap = document.createElement('div');
-  sortWrap.className = 'irs-sort';
-  const sortSelect = document.createElement('select');
-  sortSelect.id = 'kc-media-sort';
-  sortSelect.setAttribute('aria-label', '並び替え');
-  sortSelect.innerHTML = `
-    <option value="name">名前順</option>
-    <option value="newest">新しい順</option>
-    <option value="oldest">古い順</option>
-  `;
-  sortSelect.value = state.media.sortMode;
-  sortSelect.addEventListener('change', () => {
-    state.media.sortMode = sortSelect.value;
-    applyMediaFilters();
-    renderList();
-  });
-  sortWrap.append(sortSelect);
-
-  const refreshBtn = document.createElement('button');
-  refreshBtn.type = 'button';
-  refreshBtn.className = 'irs-refresh';
-  refreshBtn.title = 'INPUTメディアを再読み込み';
-  refreshBtn.textContent = '⟳';
-  refreshBtn.addEventListener('click', () => {
-    loadMediaLibrary({ force: true });
-  });
-
-  controls.append(filterWrap, searchWrap, sortWrap, refreshBtn);
-  container.append(controls, wrapper);
-
-  renderList();
-}
 
 function renderCategories() {
   const container = document.getElementById('kc-engines');
@@ -12320,11 +9966,16 @@ function renderCategories() {
   }
 
   const toolbarSearchHost = document.getElementById('kc-engine-toolbar-search');
+  const toolbarSearchSlot = document.getElementById('kc-engine-toolbar-search-slot');
+  if (toolbarSearchSlot) {
+    toolbarSearchSlot.innerHTML = '';
+  }
   if (toolbarSearchHost) {
-    toolbarSearchHost.innerHTML = '';
     if (isEngineView) {
-      const searchControls = createEngineSearchControls();
-      toolbarSearchHost.append(searchControls);
+      if (toolbarSearchSlot) {
+        const searchControls = createEngineSearchControls();
+        toolbarSearchSlot.append(searchControls);
+      }
       toolbarSearchHost.removeAttribute('hidden');
     } else {
       toolbarSearchHost.setAttribute('hidden', '');
@@ -12342,6 +9993,7 @@ function renderCategories() {
     empty.className = 'kc-engines__empty';
     empty.textContent = '利用可能なツールが見つかりません';
     contentHost.append(empty);
+    scheduleShowcaseLayoutSync();
     return;
   }
 
@@ -12385,20 +10037,41 @@ function renderCategories() {
   const statsBaseList = Array.isArray(statsEngines) ? statsEngines : [];
   const displayBaseList = Array.isArray(engines) ? engines : [];
   const keyword = isEngineView ? state.engineSearchKeyword : '';
-  const statsFiltered = statsBaseList;
-  const displayFiltered = isLoading
-    ? []
-    : filterEnginesByKeyword(displayBaseList, keyword).filter((engine) => {
+  const normalizedCategoryId = normalizeCategory(categoryId);
+  const activeTypeFilters = getEngineTypeFilterSet(normalizedCategoryId);
+  const hasActiveTypeFilters = isEngineView && activeTypeFilters.size > 0;
+  const allowedTypesForFilter = new Set(knownTypesForCategory(normalizedCategoryId));
+  const applyTypeFilterToList = (list) => {
+    if (!Array.isArray(list)) return [];
+    if (!hasActiveTypeFilters) {
+      return list;
+    }
+    return list.filter((engine) => {
+      const key = determineEngineTypeKey(engine, allowedTypesForFilter);
+      const normalizedKey = normalizeEngineTypeFilterValue(key) || 'other';
+      return activeTypeFilters.has(normalizedKey);
+    });
+  };
+
+  const statsFiltered = filterEnginesByKeyword(statsBaseList, keyword);
+  const statsVisibleList = isLoading ? [] : applyTypeFilterToList(statsFiltered);
+
+  let displaySearchFiltered = [];
+  if (!isLoading) {
+    displaySearchFiltered = filterEnginesByKeyword(displayBaseList, keyword).filter((engine) => {
       if (!isMediaView) return true;
       return Boolean(engine && engine.requiresMedia);
     });
+  }
+  const displayFiltered = isLoading ? [] : applyTypeFilterToList(displaySearchFiltered);
 
   renderEngineStats({
     isLoading,
     engines: statsBaseList,
     filteredEngines: statsFiltered,
+    visibleEngines: statsVisibleList,
     categoryId,
-    searchKeyword: '',
+    searchKeyword: keyword,
     visible: isEngineView
   });
 
@@ -12407,12 +10080,14 @@ function renderCategories() {
     loading.className = 'kc-engines__empty';
     loading.textContent = '読み込み中...';
     contentHost.append(loading);
+    scheduleShowcaseLayoutSync();
     return;
   }
 
   if (!isEngineView) {
     renderSelectionSummary();
-    renderMediaSection(contentHost);
+    renderMediaLibrary(contentHost);
+    scheduleShowcaseLayoutSync();
     return;
   }
 
@@ -12425,49 +10100,56 @@ function renderCategories() {
     empty.className = 'kc-engines__empty';
     empty.textContent = '利用可能なツールが見つかりません';
     listRoot.append(empty);
+    scheduleShowcaseLayoutSync();
     return;
   }
 
   if (!displayFiltered.length) {
     const empty = document.createElement('div');
     empty.className = 'kc-engines__empty';
-    empty.textContent = keyword && keyword.trim()
-      ? '条件に一致するMCPが見つかりません'
-      : '利用可能なツールが見つかりません';
+    const hasKeyword = Boolean(keyword && keyword.trim());
+    const typeFilterActive = hasActiveTypeFilters;
+    const hasResultsBeforeTypeFilter = displaySearchFiltered.length > 0;
+    let message = '利用可能なツールが見つかりません';
+    if (typeFilterActive && hasResultsBeforeTypeFilter) {
+      message = '選択したタイプに一致するMCPが見つかりません';
+    } else if (hasKeyword) {
+      message = '条件に一致するMCPが見つかりません';
+    }
+    empty.textContent = message;
     listRoot.append(empty);
+    scheduleShowcaseLayoutSync();
     return;
   }
 
   renderEngineCards(categoryId, listRoot, { displayList: displayFiltered, totalList: displayBaseList });
+  scheduleShowcaseLayoutSync();
 }
 
-function normalizeShowcaseAssetUrl(url) {
-  if (!url || typeof url !== 'string') return url;
-  let working = url.trim().replace(/\\/g, '/');
-  if (!working) return working;
+function formatFileSize(bytes) {
+  const size = Number(bytes);
+  if (!Number.isFinite(size) || size <= 0) {
+    return '0 B';
+  }
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const exponent = Math.min(Math.floor(Math.log10(size) / 3), units.length - 1);
+  const value = size / (10 ** (exponent * 3));
+  return `${value.toFixed(value >= 100 || exponent === 0 ? 0 : 1)} ${units[exponent]}`;
+}
 
-  if (working.includes('/public/showcase/')) {
-    working = working.replace('/public/showcase/', '/showcase/');
+function formatMcpTimestamp(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) {
+    return '';
   }
-  if (working.includes('public/showcase/')) {
-    working = working.replace('public/showcase/', 'showcase/');
-  }
-  if (working.includes('/public/images/')) {
-    working = working.replace('/public/images/', '/images/');
-  }
-  if (working.includes('public/images/')) {
-    working = working.replace('public/images/', 'images/');
-  }
-
-  const knownPrefixes = ['showcase', 'images'];
-  for (const prefix of knownPrefixes) {
-    const match = working.match(new RegExp(`\\/?${prefix}\\/[^\\s?#]+`));
-    if (match) {
-      const suffix = match[0].startsWith('/') ? match[0] : `/${match[0]}`;
-      return suffix;
-    }
-  }
-  return working;
+  const formatter = new Intl.DateTimeFormat('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+  return formatter.format(new Date(ms));
 }
 
 function buildImageUrl(savedFile) {
@@ -12512,8 +10194,10 @@ function renderResults(container) {
     categoryBadge.textContent = categoryLabel(activeCategoryId);
     applyBadgeTheme(categoryBadge, activeCategoryId, { fallbackCategory: activeCategoryId });
   }
+  const templateNameEl = document.getElementById('kc-results-template-name');
   const promptLabel = document.getElementById('kc-results-prompt');
   const promptPanel = document.getElementById('kc-results-prompt-panel');
+  const promptMemoEl = document.getElementById('kc-results-prompt-memo');
   const promptText = document.getElementById('kc-results-prompt-text');
   const promptHost = document.getElementById('kc-results-prompt-host');
   const filterRow = document.getElementById('kc-results-filter-row');
@@ -12526,6 +10210,20 @@ function renderResults(container) {
     const disabled = !results.length && !(state.isRunning && state.activeJobSnapshot);
     expandBtn.disabled = disabled;
     expandBtn.setAttribute('aria-disabled', String(disabled));
+  }
+
+  const templateContext = resolveEntryTemplateContext(activeEntry)
+    || cloneTemplateContext(state.currentRunTemplateContext || state.activeTemplateContext);
+  const templateName = templateContext?.name || '';
+  const templateMemo = (templateContext?.memo || '').trim();
+  if (templateNameEl) {
+    if (templateName) {
+      templateNameEl.textContent = templateName;
+      templateNameEl.hidden = false;
+    } else {
+      templateNameEl.textContent = '';
+      templateNameEl.hidden = true;
+    }
   }
 
   const normalizedCategory = normalizeCategory(activeCategoryId);
@@ -12694,11 +10392,19 @@ function renderResults(container) {
     if (!normalizedCategory || normalizedCategory === ALL_CATEGORY_ID) return '';
     return normalizedCategory.toUpperCase();
   })();
+  const templateTypeToken = templateContext?.type
+    ? normalizeTypeToken(templateContext.type)?.toUpperCase()
+    : '';
+  const computedPrimaryType = templateTypeToken || primaryTypeToken;
   const baseTypeLabel = pendingCount > 0
-    ? (fallbackTypeToken || primaryTypeToken)
-    : (primaryTypeToken || fallbackTypeToken);
+    ? (fallbackTypeToken || computedPrimaryType)
+    : (computedPrimaryType || fallbackTypeToken);
   const typeThemeTokens = [];
-  if (primaryTypeToken) typeThemeTokens.push(primaryTypeToken);
+  if (templateTypeToken) {
+    typeThemeTokens.push(templateTypeToken);
+  } else if (primaryTypeToken) {
+    typeThemeTokens.push(primaryTypeToken);
+  }
   if (normalizedCategory && normalizedCategory !== ALL_CATEGORY_ID) {
     typeThemeTokens.push(normalizedCategory);
   }
@@ -12779,12 +10485,12 @@ function renderResults(container) {
       let previewEl;
       if (mediaType === 'video') {
         const video = document.createElement('video');
-        video.src = entry.imageUrl;
         video.muted = true;
         video.playsInline = true;
         video.preload = 'metadata';
         video.autoplay = false;
         video.className = 'kc-result-card__video';
+        applyAssetSrcWithFallback(video, entry.imageUrl, { type: 'video' });
         applyLoopSettingToMedia(video);
         bindShowcaseMediaLifecycle(video, {
           src: entry.imageUrl,
@@ -12796,10 +10502,10 @@ function renderResults(container) {
       } else if (mediaType === 'sound') {
         imageWrap.classList.add('is-sound');
         const audio = document.createElement('audio');
-        audio.src = entry.imageUrl;
         audio.controls = true;
         audio.preload = 'metadata';
         audio.className = 'kc-result-card__audio';
+        applyAssetSrcWithFallback(audio, entry.imageUrl, { type: 'audio' });
         applyLoopSettingToMedia(audio);
         bindShowcaseMediaLifecycle(audio, {
           src: entry.imageUrl,
@@ -12821,7 +10527,7 @@ function renderResults(container) {
         previewEl = null;
       } else {
         const img = document.createElement('img');
-        img.src = entry.imageUrl;
+        applyAssetSrcWithFallback(img, entry.imageUrl);
         img.alt = normalizedLabel;
         previewEl = img;
       }
@@ -12864,6 +10570,10 @@ function renderResults(container) {
     }
 
     if (state.showInputs !== false && Array.isArray(entry.inputMedia) && entry.inputMedia.length) {
+      const normalizedInputs = normalizeAssignmentSlotLabels(entry.inputMedia);
+      if (normalizedInputs !== entry.inputMedia) {
+        entry.inputMedia = normalizedInputs;
+      }
       const inputsSection = document.createElement('div');
       inputsSection.className = 'kc-result-card__inputs';
 
@@ -12885,8 +10595,13 @@ function renderResults(container) {
         const normalizedSlotType = normalizeMediaGroupType(
           assignment.slotType || assignment.type || media.filterType || media.type || ''
         );
+        const normalizedAssignmentLabel = normalizeSlotLabel(assignment.slotLabel, {
+          type: normalizedSlotType,
+          key: assignment.paramKey || '',
+          index: inputIndex
+        });
         const displayLabel = formatSlotLabelForDisplay(
-          assignment.slotLabel,
+          normalizedAssignmentLabel,
           normalizedSlotType,
           inputIndex,
           totalInputs
@@ -13082,24 +10797,33 @@ function renderResults(container) {
       || '';
 
     promptLabel.innerHTML = '';
-    const hasPrompt = Boolean(activePrompt);
-    promptLabel.classList.toggle('has-content', hasPrompt);
+    const hasPromptContent = Boolean(activePrompt || templateMemo);
+    promptLabel.classList.toggle('has-content', hasPromptContent);
     if (promptHost) {
-      promptHost.hidden = !hasPrompt;
-      promptHost.setAttribute('aria-hidden', hasPrompt ? 'false' : 'true');
-      promptHost.classList.toggle('has-content', hasPrompt);
+      promptHost.hidden = !hasPromptContent;
+      promptHost.setAttribute('aria-hidden', hasPromptContent ? 'false' : 'true');
+      promptHost.classList.toggle('has-content', hasPromptContent);
     }
     if (promptPanel) {
-      promptPanel.classList.toggle('has-content', hasPrompt);
-      if (!hasPrompt || !state.resultsPromptExpanded) {
+      promptPanel.classList.toggle('has-content', hasPromptContent);
+      if (!hasPromptContent || !state.resultsPromptExpanded) {
         promptPanel.hidden = true;
       }
     }
+    if (promptMemoEl) {
+      if (templateMemo) {
+        promptMemoEl.textContent = templateMemo;
+        promptMemoEl.hidden = false;
+      } else {
+        promptMemoEl.textContent = '';
+        promptMemoEl.hidden = true;
+      }
+    }
     if (promptText) {
-      promptText.textContent = hasPrompt ? activePrompt : '';
+      promptText.textContent = activePrompt;
     }
 
-    if (hasPrompt) {
+    if (hasPromptContent) {
       const promptButton = document.createElement('button');
       promptButton.type = 'button';
       promptButton.id = 'kc-results-prompt-button';
@@ -13117,7 +10841,11 @@ function renderResults(container) {
         if (state.resultsPromptExpanded) {
           closePromptPopover();
         } else {
-          openPromptPopover(promptButton, activePrompt);
+          openPromptPopover(promptButton, {
+            promptText: activePrompt,
+            memoText: templateMemo,
+            templateName
+          });
         }
       });
 
@@ -13126,7 +10854,11 @@ function renderResults(container) {
       if (wasPromptPopoverOpen) {
         requestAnimationFrame(() => {
           if (document.contains(promptButton)) {
-            openPromptPopover(promptButton, activePrompt);
+            openPromptPopover(promptButton, {
+              promptText: activePrompt,
+              memoText: templateMemo,
+              templateName
+            });
           }
         });
       }
@@ -13136,7 +10868,7 @@ function renderResults(container) {
 
     if (filterRow) {
       const hasFilterControl = filterWrap && filterWrap.hidden === false;
-      const shouldShowRow = hasFilterControl || hasPrompt;
+      const shouldShowRow = hasFilterControl || hasPromptContent;
       filterRow.hidden = !shouldShowRow;
       filterRow.setAttribute('aria-hidden', shouldShowRow ? 'false' : 'true');
     }
@@ -13150,6 +10882,7 @@ function renderResults(container) {
   }
 
   updateBatchControlVisuals();
+  scheduleShowcaseLayoutSync();
 }
 
 function resolvePromptKey(meta, entry = null) {
@@ -13264,446 +10997,6 @@ function updateRunButtonState() {
   runButton.textContent = '生成を開始';
 }
 
-function encodePath(relativePath) {
-  return relativePath.split(/\\|\//).map(encodeURIComponent).join('/');
-}
-
-function cacheBust(url) {
-  if (!url || typeof url !== 'string') return url;
-  if (url.startsWith('data:')) return url;
-  const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}_=${Date.now()}`;
-}
-
-function canonicalizePath(path) {
-  if (!path) return '';
-  return path.replace(/^\/+/, '').toLowerCase();
-}
-
-function normalizeFileTimestamp(value) {
-  if (value === null || value === undefined) return 0;
-  if (value instanceof Date) {
-    const time = value.getTime();
-    return Number.isNaN(time) ? 0 : time;
-  }
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    if (value > 1e12) return Math.round(value);
-    if (value > 1e9) return Math.round(value * 1000);
-    if (value > 0) return Math.round(value);
-    return 0;
-  }
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (!trimmed) return 0;
-    const parsed = Date.parse(trimmed);
-    if (!Number.isNaN(parsed)) return parsed;
-    const numeric = Number(trimmed);
-    if (!Number.isNaN(numeric)) {
-      return normalizeFileTimestamp(numeric);
-    }
-  }
-  return 0;
-}
-
-function pickNormalizedTimestamp(...values) {
-  for (const value of values) {
-    if (value === null || value === undefined) continue;
-    const normalized = normalizeFileTimestamp(value);
-    if (Number.isFinite(normalized) && normalized > 0) {
-      return normalized;
-    }
-  }
-  return 0;
-}
-
-function getMediaModifiedTime(media) {
-  if (!media) return 0;
-  return pickNormalizedTimestamp(
-    media.modified,
-    media.modifiedMs,
-    media.modified_ms,
-    media.modified_ts,
-    media.updated,
-    media.updatedAt,
-    media.updated_at,
-    media.mtime,
-    media.mtimeMs,
-    media.mtime_ms,
-    media.lastModified,
-    media.last_modified
-  );
-}
-
-function getMediaCreatedTime(media) {
-  if (!media) return 0;
-  const created = pickNormalizedTimestamp(
-    media.created,
-    media.createdMs,
-    media.created_ms,
-    media.created_ts,
-    media.createdAt,
-    media.created_at,
-    media.birthtime,
-    media.birthTime,
-    media.birth_time,
-    media.birthtimeMs,
-    media.birthtime_ms,
-    media.added,
-    media.creationTime,
-    media.creationTimeMs,
-    media.ctime,
-    media.ctimeMs,
-    media.ctime_ms
-  );
-  if (created) return created;
-  return getMediaModifiedTime(media);
-}
-
-function hasMediaUrl(entry) {
-  if (!entry) return false;
-  const url = entry.url || entry.absolute || entry.webPath || '';
-  return typeof url === 'string' && url.trim().length > 0;
-}
-
-function createResultInputThumb(media, {
-  label = '',
-  type = 'other'
-} = {}) {
-  if (!media) return null;
-  const resolvedType = normalizeMediaGroupType(type || media.filterType || media.type || media.ext || '');
-  const source = media.thumbUrl || media.url || media.absolute || media.webPath || '';
-  const safeLabel = label || media.name || media.path || 'INPUT';
-
-  if (resolvedType === 'image' && source) {
-    const img = document.createElement('img');
-    img.src = source;
-    img.alt = safeLabel;
-    img.loading = 'lazy';
-    return { element: img, modifier: 'image' };
-  }
-
-  if (resolvedType === 'video' && source) {
-    const video = document.createElement('video');
-    video.src = source;
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = 'metadata';
-    video.loop = true;
-    video.classList.add('kc-result-input__video');
-    video.addEventListener('mouseenter', () => {
-      if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
-        video.play().catch(() => {});
-      }
-    });
-    video.addEventListener('mouseleave', () => {
-      video.pause();
-      try {
-        video.currentTime = 0;
-      } catch (err) {
-        /* noop */
-      }
-    });
-    return { element: video, modifier: 'video' };
-  }
-
-  if (resolvedType === 'sound') {
-    const icon = document.createElement('span');
-    icon.className = 'kc-result-input__icon';
-    icon.textContent = '♪';
-    icon.setAttribute('aria-hidden', 'true');
-    return { element: icon, modifier: 'sound' };
-  }
-
-  if (resolvedType === '3d') {
-    const icon = document.createElement('span');
-    icon.className = 'kc-result-input__icon';
-    icon.textContent = '3D';
-    icon.setAttribute('aria-hidden', 'true');
-    return { element: icon, modifier: '3d' };
-  }
-
-  if (source) {
-    const fallback = document.createElement('span');
-    fallback.className = 'kc-result-input__placeholder';
-    fallback.textContent = (media.ext || resolvedType || '?').toUpperCase();
-    return { element: fallback, modifier: resolvedType || 'other', isPlaceholder: true };
-  }
-
-  return null;
-}
-
-function resolveMediaEntryType(entry) {
-  const mapExtToType = (raw) => {
-    if (!raw && raw !== 0) return '';
-    const trimmed = String(raw).trim().toLowerCase();
-    if (!trimmed) return '';
-    const ext = trimmed.replace(/^\./, '');
-    if (IMAGE_EXTENSIONS.has(ext)) return 'image';
-    if (VIDEO_EXTENSIONS.has(ext)) return 'video';
-    if (AUDIO_EXTENSIONS.has(ext)) return 'sound';
-    if (THREED_EXTENSIONS.has(ext)) return '3d';
-    return '';
-  };
-
-  const normalizeCandidate = (raw) => {
-    if (!raw && raw !== 0) return '';
-    const value = String(raw).trim().toLowerCase();
-    if (!value) return '';
-    if (MEDIA_INPUT_ALLOWED_TYPES.has(value)) return value;
-    if (value === 'audio') return 'sound';
-    if (value === 'images') return 'image';
-    if (value === 'videos') return 'video';
-    if (value.startsWith('image/')) return 'image';
-    if (value.startsWith('video/')) return 'video';
-    if (value.startsWith('audio/')) return 'sound';
-    const fromExt = mapExtToType(value);
-    if (fromExt) return fromExt;
-    return '';
-  };
-
-  const candidates = [
-    entry?.filterType,
-    entry?.mediaType,
-    entry?.type,
-    entry?.mime,
-    entry?.ext
-  ];
-  for (const candidate of candidates) {
-    const resolved = normalizeCandidate(candidate);
-    if (resolved) return resolved;
-  }
-  if (entry?.path && entry.path.includes('.')) {
-    const pathExt = entry.path.split('.').pop();
-    const resolved = normalizeCandidate(pathExt);
-    if (resolved) return resolved;
-  }
-  if (entry?.url && entry.url.includes('.')) {
-    const urlToken = entry.url.split('?')[0].split('#')[0];
-    const urlExt = urlToken.split('.').pop();
-    const resolved = normalizeCandidate(urlExt);
-    if (resolved) return resolved;
-  }
-  return 'other';
-}
-
-function collectMedia(node, acc = []) {
-  if (!node) return acc;
-  if (Array.isArray(node.files)) {
-    node.files.forEach((file) => {
-      const filterTags = deriveMediaFilterTags(file);
-      const filterType = selectPrimaryMediaFilter(filterTags);
-      if (!MEDIA_INPUT_ALLOWED_TYPES.has(filterType)) {
-        return;
-      }
-      const createdMs = normalizeFileTimestamp(
-        file.createdMs
-        ?? file.createdAt
-        ?? file.created
-        ?? file.birthtime
-        ?? file.birthTime
-        ?? file.birth_time
-        ?? file.added
-        ?? file.ctime
-        ?? file.ctimeMs
-        ?? file.birthtimeMs
-        ?? file.created_ms
-        ?? file.created_ts
-        ?? file.creationTime
-        ?? file.creationTimeMs
-      );
-      let modifiedMs = normalizeFileTimestamp(
-        file.modifiedMs
-        ?? file.modified
-        ?? file.updated
-        ?? file.mtime
-        ?? file.mtimeMs
-        ?? file.lastModified
-        ?? file.last_modified
-        ?? file.modified_ms
-        ?? file.modified_ts
-        ?? file.updatedAt
-        ?? file.updated_at
-      );
-      if (!modifiedMs && createdMs) {
-        modifiedMs = createdMs;
-      }
-      acc.push({
-        name: file.name,
-        path: file.path,
-        ext: file.ext,
-        mime: file.mime || file.type || '',
-        type: file.type || '',
-        mediaType: file.mediaType || '',
-        size: file.size,
-        created: createdMs,
-        modified: modifiedMs,
-        canonical: canonicalizePath(file.path),
-        filterType,
-        filterTags
-      });
-    });
-  }
-  if (Array.isArray(node.folders)) {
-    node.folders.forEach((folder) => {
-      collectMedia(folder.items, acc);
-    });
-  }
-  return acc;
-}
-
-function extractFilename(input) {
-  if (!input) return '';
-  const parts = String(input).split(/[\\/]/).filter(Boolean);
-  return parts.length ? parts[parts.length - 1] : String(input);
-}
-
-function extractFileExtension(input) {
-  const name = extractFilename(input);
-  const match = name.toLowerCase().match(/\.([^.]+)$/);
-  return match ? match[1] : '';
-}
-
-function matchesMediaFilter(item, filterId) {
-  if (!filterId || filterId === 'all') return true;
-  if (!item) return false;
-  const normalizedFilter = normalizeMediaGroupType(filterId);
-  const itemType = normalizeMediaGroupType(item.filterType);
-  if (MEDIA_INPUT_ALLOWED_TYPES.has(normalizedFilter)) {
-    return itemType === normalizedFilter;
-  }
-  let tags = Array.isArray(item.filterTags) ? item.filterTags : null;
-  if (!tags || !tags.length) {
-    const derived = deriveMediaFilterTags(item);
-    if (derived.length) {
-      item.filterTags = derived;
-      tags = derived;
-    } else {
-      tags = [];
-    }
-  }
-  if (tags.includes(filterId)) {
-    return true;
-  }
-  if (item.filterType && item.filterType === filterId) {
-    return true;
-  }
-  return false;
-}
-
-function applyMediaFilters() {
-  const keyword = state.media.searchKeyword.trim().toLowerCase();
-  let list = Array.isArray(state.media.items) ? [...state.media.items] : [];
-  if (keyword) {
-    list = list.filter((item) => {
-      const name = (item.name || '').toLowerCase();
-      const path = (item.path || '').toLowerCase();
-      return name.includes(keyword) || path.includes(keyword);
-    });
-  }
-
-  const typeFilter = state.media.typeFilter;
-  if (typeFilter && typeFilter !== 'all') {
-    list = list.filter((item) => matchesMediaFilter(item, typeFilter));
-  }
-
-  switch (state.media.sortMode) {
-    case 'newest':
-      list.sort((a, b) => {
-        const diff = getMediaCreatedTime(b) - getMediaCreatedTime(a);
-        if (diff) return diff;
-        return (a.path || '').localeCompare(b.path || '');
-      });
-      break;
-    case 'oldest':
-      list.sort((a, b) => {
-        const diff = getMediaCreatedTime(a) - getMediaCreatedTime(b);
-        if (diff) return diff;
-        return (a.path || '').localeCompare(b.path || '');
-      });
-      break;
-    case 'name':
-    default:
-      list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-      break;
-  }
-
-  state.media.filtered = list;
-}
-
-async function loadMediaLibrary({ force = false } = {}) {
-  if (!state.backendOrigin) return;
-  if (state.media.isLoading) return;
-  const now = Date.now();
-  if (!force && state.media.items.length && now - state.media.lastLoadedAt < MEDIA_CACHE_TTL_MS) {
-    return;
-  }
-  state.media.isLoading = true;
-  state.media.error = '';
-  renderCategories();
-  try {
-    const json = await fetchJson('/api/scan');
-    const rawImages = collectMedia(json.data || json);
-    const uniq = new Map();
-    rawImages.forEach((item) => {
-      if (!item || !item.path) return;
-      if (!uniq.has(item.path)) uniq.set(item.path, item);
-    });
-    const items = Array.from(uniq.values()).sort((a, b) => {
-      const diff = getMediaCreatedTime(b) - getMediaCreatedTime(a);
-      if (diff) return diff;
-      return (a.path || '').localeCompare(b.path || '');
-    });
-    state.media.items = items.map((item) => {
-      const absoluteUrl = state.backendOrigin ? `${state.backendOrigin}/${encodePath(item.path)}` : '';
-      const baseTags = Array.isArray(item.filterTags) ? item.filterTags : deriveMediaFilterTags(item);
-      const deduped = Array.from(new Set((baseTags || []).filter(Boolean)));
-      let filterType = item.filterType || selectPrimaryMediaFilter(deduped);
-      if ((!filterType || filterType === 'other') && deduped.length) {
-        filterType = selectPrimaryMediaFilter(deduped);
-      }
-      if (!filterType) filterType = 'other';
-      if (!MEDIA_INPUT_ALLOWED_TYPES.has(filterType)) {
-        return null;
-      }
-      const filterTags = deduped.filter((tag) => tag && tag !== 'other');
-      if (filterType !== 'other' && !filterTags.includes(filterType)) {
-        filterTags.unshift(filterType);
-      }
-      const isImage = filterType === 'image';
-      const createdTime = getMediaCreatedTime(item);
-      const modifiedTime = getMediaModifiedTime(item);
-      return {
-        path: item.path,
-        name: extractFilename(item.path) || item.name,
-        url: absoluteUrl || '',
-        thumbUrl: isImage && absoluteUrl ? cacheBust(absoluteUrl) : '',
-        created: createdTime,
-        createdMs: createdTime,
-        modified: modifiedTime,
-        modifiedMs: modifiedTime,
-        filterType,
-        filterTags,
-        mime: item.mime || item.type || '',
-        ext: item.ext || '',
-        mediaType: item.mediaType || '',
-        size: item.size
-      };
-    }).filter(Boolean);
-    state.media.lastLoadedAt = Date.now();
-    const currentPaths = new Set(state.media.items.map((media) => media.path));
-    clearMissingMediaSelections(currentPaths);
-    applyMediaFilters();
-  } catch (err) {
-    console.error('[Showcase] media load failed', err);
-    state.media.error = err.message || 'メディアの取得に失敗しました';
-    state.media.filtered = [];
-  } finally {
-    state.media.isLoading = false;
-    renderCategories();
-    updateRunButtonState();
-  }
-}
-
 function cleanupSelections() {
   const validIds = new Set(state.engineIndex.keys());
   const preservedSelected = new Map();
@@ -13727,7 +11020,6 @@ function cleanupSelections() {
         requiredSoundTextKeys: Array.isArray(meta?.requiredSoundTextKeys)
           ? meta.requiredSoundTextKeys.slice()
           : (Array.isArray(value?.requiredSoundTextKeys) ? value.requiredSoundTextKeys.slice() : []),
-        documentationUrl: meta?.documentationUrl || value?.documentationUrl || '',
         docSummaryEn: meta?.docSummaryEn || value?.docSummaryEn || '',
         docSummaryJa: meta?.docSummaryJa || value?.docSummaryJa || ''
       });
@@ -13782,41 +11074,16 @@ function removeLastSelectedMedia() {
   return true;
 }
 
-function removeSelectedMediaEntry(target, fallbackIndex = -1, identifier = '') {
-  const list = getSelectedMediaList();
-  if (!list.length) return false;
-  const normalizedId = identifier || target?.path || target?.url || '';
-  let removed = false;
-  const next = [];
-  list.forEach((entry, idx) => {
-    if (removed) {
-      next.push(entry);
-      return;
-    }
-    const samePath = target?.path && entry?.path === target.path;
-    const sameUrl = !target?.path && target?.url && entry?.url === target.url;
-    const sameIdentifier = normalizedId && (entry?.path === normalizedId || entry?.url === normalizedId);
-    if (samePath || sameUrl || sameIdentifier || idx === fallbackIndex) {
-      removed = true;
-      return;
-    }
-    next.push(entry);
-  });
-  if (!removed) return false;
-  setSelectedMediaList(next);
-  renderCategories();
-  updateRunButtonState();
-  return true;
-}
 
-function clearAllMediaSelections() {
-  if (!getSelectedMediaList().length) return false;
-  state.media.activeSlot = '';
-  setSelectedMediaList([]);
-  renderCategories();
-  updateRunButtonState();
-  return true;
-}
+configureMediaUiHandlers({
+  renderSelectionSummary,
+  updateRunButtonState,
+  renderCategories,
+  fetchJson,
+  applyBadgeTheme
+});
+
+
 
 async function loadEnginesForCategory(categoryId) {
   if (!categoryId) return;
@@ -13830,6 +11097,7 @@ async function loadCatalog() {
   const container = document.getElementById('kc-engines');
   if (!container) return;
   container.textContent = '読み込み中...';
+  startEngineLoadingOverlay('MCP一覧を更新中...');
   state.enginesLoading.clear();
   SUPPORTED_CATEGORIES.forEach((id) => {
     state.enginesLoading.add(id);
@@ -13887,14 +11155,10 @@ async function loadCatalog() {
         requiredMediaTypes,
         requiresMedia: Boolean(meta?.requiresMedia)
           || requiresMediaByParams
-          || (!hasAnyMediaParam && requiresMediaForPrefix(rawType)),
-        documentationUrl: deriveDocumentationUrl(meta)
+          || (!hasAnyMediaParam && requiresMediaForPrefix(rawType))
       };
       const docMeta = getDocMetadata(meta.id);
       if (docMeta) {
-        if (docMeta.documentationUrl) {
-          enriched.documentationUrl = docMeta.documentationUrl;
-        }
         if (docMeta.descriptionEn) {
           enriched.docSummaryEn = docMeta.descriptionEn;
         }
@@ -13956,16 +11220,27 @@ async function loadCatalog() {
     if (state.categoryTabs[state.activeEngineCategory] === 'media'
       && state.media.items.length === 0
       && !state.media.isLoading) {
-      loadMediaLibrary().catch((err) => console.error('[Showcase] initial media load failed', err));
+      loadMediaLibrary({ fetchJson, onStateChange: renderCategories })
+        .catch((err) => console.error('[Showcase] initial media load failed', err));
     }
     renderHistory();
   } catch (err) {
     console.error('[Showcase] load catalog failed', err);
     container.textContent = `エンジン情報の取得に失敗しました: ${err.message}`;
+  } finally {
+    stopEngineLoadingOverlay();
   }
 }
 
 async function detectBackendOrigin() {
+  if (state.backendOrigin) return;
+  if (typeof window !== 'undefined') {
+    const forced = typeof window.__kcBackendOrigin === 'string' ? window.__kcBackendOrigin.trim() : '';
+    if (forced) {
+      state.backendOrigin = forced;
+      return;
+    }
+  }
   const protocol = window.location.protocol || 'http:';
   const hostname = window.location.hostname || 'localhost';
   const ports = new Set();
@@ -14001,7 +11276,8 @@ async function detectBackendOrigin() {
       lastError = err;
     }
   }
-  throw lastError || new Error('バックエンドサーバーを検出できませんでした');
+  state.backendOrigin = 'http://localhost:7777';
+  console.warn('[Showcase] backend detection fallback applied', lastError);
 }
 
 async function loadConfig() {
@@ -14022,6 +11298,8 @@ async function runGeneration() {
   }
   const selectedEngines = Array.from(state.selected.values());
   if (!selectedEngines.length) return;
+
+  state.currentRunTemplateContext = createTemplateContextSnapshot();
 
   closeParamsPopover();
   closeTemplateMenu();
@@ -14184,6 +11462,7 @@ async function runGeneration() {
     state.activeJobSnapshot = null;
     state.currentJobEngines = [];
     state.engineDisplayOrder = new Map();
+    state.currentRunTemplateContext = null;
     if (resultsContainer) {
       const errorMessage = document.createElement('div');
       errorMessage.className = 'kc-results-error-message';
@@ -14206,6 +11485,8 @@ function attachEvents() {
   const soundTextInput = document.getElementById('kc-sound-text');
   const runButton = document.getElementById('kc-run');
   const templateButton = document.getElementById('kc-template');
+  const templateResetButton = document.getElementById('kc-template-reset');
+  const mcpConfigButton = document.getElementById('kc-mcp-config-button');
   const expandButton = document.getElementById('kc-results-expand');
   const resultsRewindButton = document.getElementById('kc-results-rewind');
   const resultsToggleButton = document.getElementById('kc-results-toggleplay');
@@ -14234,6 +11515,41 @@ function attachEvents() {
   const promptGeneratorSoundTextCharInput = document.getElementById('kc-prompt-generator-soundtext-chars');
   const promptGeneratorSoundTextKeywordsInput = document.getElementById('kc-prompt-generator-soundtext-keywords');
   const promptGeneratorSoundTextNotesField = document.getElementById('kc-prompt-generator-soundtext-notes');
+  const promptRow = document.querySelector('.kc-prompt-row');
+  const promptMainColumn = promptRow?.querySelector('.kc-prompt-main');
+  const promptSideColumn = promptRow?.querySelector('.kc-prompt-side');
+  const promptActionsBar = promptRow?.querySelector('.kc-prompt-actions');
+
+  if (promptRow instanceof HTMLElement && promptMainColumn instanceof HTMLElement && promptSideColumn instanceof HTMLElement && promptActionsBar instanceof HTMLElement) {
+    let lastStackedState = null;
+    const updatePromptActionsLayout = () => {
+      if (!(promptRow.isConnected && promptMainColumn.isConnected && promptSideColumn.isConnected && promptActionsBar.isConnected)) {
+        return;
+      }
+      const mainRect = promptMainColumn.getBoundingClientRect();
+      const sideRect = promptSideColumn.getBoundingClientRect();
+      if (!mainRect || !sideRect) return;
+      const isStacked = Number.isFinite(mainRect.bottom) && Number.isFinite(sideRect.top)
+        ? (sideRect.top - mainRect.bottom) > 6
+        : false;
+      if (lastStackedState === isStacked) return;
+      lastStackedState = isStacked;
+      promptActionsBar.classList.toggle('kc-prompt-actions--stacked', isStacked);
+    };
+    updatePromptActionsLayout();
+    if (typeof ResizeObserver === 'function') {
+      const promptActionsObserver = new ResizeObserver(() => {
+        updatePromptActionsLayout();
+      });
+      promptActionsObserver.observe(promptRow);
+      promptActionsObserver.observe(promptMainColumn);
+      promptActionsObserver.observe(promptSideColumn);
+      promptActionsObserver.observe(promptActionsBar);
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', updatePromptActionsLayout, { passive: true });
+    }
+  }
 
   if (filePrefixInput) {
     const handlePrefixChange = () => {
@@ -14251,6 +11567,7 @@ function attachEvents() {
     promptInput.disabled = false;
     const handleInput = () => {
       state.prompt = promptInput.value;
+      updateActiveTemplateOverrides();
       adjustPromptFieldHeight(promptInput);
       updateRunButtonState();
       updatePromptGeneratorControls();
@@ -14259,6 +11576,7 @@ function attachEvents() {
     promptInput.addEventListener('input', handleInput);
     promptInput.addEventListener('blur', () => {
       state.prompt = promptInput.value;
+      updateActiveTemplateOverrides();
       adjustPromptFieldHeight(promptInput);
       updatePromptGeneratorControls();
     });
@@ -14271,6 +11589,7 @@ function attachEvents() {
     const handleSoundTextChange = () => {
       state.soundText = soundTextInput.value;
       applySoundTextToInputs(state.soundText);
+      updateActiveTemplateOverrides();
       updateRunButtonState();
     };
     soundTextInput.addEventListener('input', handleSoundTextChange);
@@ -14295,6 +11614,24 @@ function attachEvents() {
       openTemplateMenu(templateButton);
     });
   }
+  if (templateResetButton) {
+    templateResetButton.addEventListener('click', (evt) => {
+      evt.preventDefault();
+      if (templateResetButton.disabled) return;
+      const confirmed = window.confirm('プロンプトと接頭辞を含む表示をリセットします。よろしいですか？');
+      if (!confirmed) return;
+      resetTemplateState();
+    });
+  }
+  if (mcpConfigButton) {
+    mcpConfigButton.addEventListener('click', (evt) => {
+      evt.preventDefault();
+      openMcpConfigModal().catch((err) => {
+        console.error('[Showcase] MCP config modal open failed', err);
+      });
+    });
+    syncMcpConfigButton();
+  }
   if (promptGeneratorToggle) {
     promptGeneratorToggle.setAttribute('aria-controls', 'kc-prompt-generator');
     promptGeneratorToggle.setAttribute('aria-haspopup', 'dialog');
@@ -14317,11 +11654,9 @@ function attachEvents() {
     resultsFileFilterSelect.addEventListener('change', () => {
       const value = resultsFileFilterSelect.value || 'all';
       state.resultsFileFilter = value;
-      try {
-        localStorage.setItem(RESULTS_FILE_FILTER_STORAGE_KEY, value);
-      } catch (err) {
-        console.warn('[Showcase] failed to persist results file filter', err);
-      }
+      preferenceStorage.writeString(RESULTS_FILE_FILTER_STORAGE_KEY, value, {
+        label: 'failed to persist results file filter'
+      });
       closeResultsModal();
       const resultsContainer = document.getElementById('kc-results');
       if (resultsContainer) {
@@ -14333,11 +11668,9 @@ function attachEvents() {
     inputToggleButton.addEventListener('click', (evt) => {
       evt.preventDefault();
       state.showInputs = !state.showInputs;
-      try {
-        localStorage.setItem(INPUT_VISIBILITY_STORAGE_KEY, state.showInputs ? '1' : '0');
-      } catch (err) {
-        console.warn('[Showcase] failed to persist input visibility preference', err);
-      }
+      preferenceStorage.writeBoolean(INPUT_VISIBILITY_STORAGE_KEY, state.showInputs, {
+        label: 'failed to persist input visibility preference'
+      });
       syncInputToggle();
       closeResultsModal();
       const resultsContainer = document.getElementById('kc-results');
@@ -14352,11 +11685,9 @@ function attachEvents() {
     paramsToggleButton.addEventListener('click', (evt) => {
       evt.preventDefault();
       state.showParameters = !state.showParameters;
-      try {
-        localStorage.setItem(PARAM_VISIBILITY_STORAGE_KEY, state.showParameters ? '1' : '0');
-      } catch (err) {
-        console.warn('[Showcase] failed to persist parameter visibility preference', err);
-      }
+      preferenceStorage.writeBoolean(PARAM_VISIBILITY_STORAGE_KEY, state.showParameters, {
+        label: 'failed to persist parameter visibility preference'
+      });
       syncParameterToggle();
       closeResultsModal();
       const resultsContainer = document.getElementById('kc-results');
@@ -14371,11 +11702,9 @@ function attachEvents() {
     failureToggleButton.addEventListener('click', (evt) => {
       evt.preventDefault();
       state.showFailures = !state.showFailures;
-      try {
-        localStorage.setItem(FAILURE_VISIBILITY_STORAGE_KEY, state.showFailures ? '1' : '0');
-      } catch (err) {
-        console.warn('[Showcase] failed to persist failure visibility preference', err);
-      }
+      preferenceStorage.writeBoolean(FAILURE_VISIBILITY_STORAGE_KEY, state.showFailures, {
+        label: 'failed to persist failure visibility preference'
+      });
       syncFailureToggle();
       closeResultsModal();
       const resultsContainer = document.getElementById('kc-results');
@@ -14537,35 +11866,40 @@ async function init() {
     return;
   }
   root.innerHTML = showcaseTemplate();
+  configureMediaLightboxHooks({
+    beforeOpen: () => {
+      closeResultsModal();
+      closeTemplateMenu();
+      closePromptModal();
+    }
+  });
   try {
-    const storedPrefix = localStorage.getItem(FILE_PREFIX_STORAGE_KEY);
+    const storedPrefix = preferenceStorage.readString(FILE_PREFIX_STORAGE_KEY, {
+      label: 'failed to restore file prefix'
+    });
     if (typeof storedPrefix === 'string') {
       state.filePrefix = storedPrefix;
     }
-    const storedFailures = localStorage.getItem(FAILURE_VISIBILITY_STORAGE_KEY);
-    if (storedFailures === '0' || storedFailures === 'false') {
-      state.showFailures = false;
-    } else if (storedFailures === '1' || storedFailures === 'true') {
-      state.showFailures = true;
-    }
-    const storedInputs = localStorage.getItem(INPUT_VISIBILITY_STORAGE_KEY);
-    if (storedInputs === '0' || storedInputs === 'false') {
-      state.showInputs = false;
-    } else if (storedInputs === '1' || storedInputs === 'true') {
-      state.showInputs = true;
-    }
-    const storedParams = localStorage.getItem(PARAM_VISIBILITY_STORAGE_KEY);
-    if (storedParams === '0' || storedParams === 'false') {
-      state.showParameters = false;
-    } else if (storedParams === '1' || storedParams === 'true') {
-      state.showParameters = true;
-    }
-    const storedResultsFilter = localStorage.getItem(RESULTS_FILE_FILTER_STORAGE_KEY);
+    state.showFailures = preferenceStorage.readBoolean(FAILURE_VISIBILITY_STORAGE_KEY, {
+      defaultValue: state.showFailures,
+      label: 'failed to restore failure visibility preference'
+    });
+    state.showInputs = preferenceStorage.readBoolean(INPUT_VISIBILITY_STORAGE_KEY, {
+      defaultValue: state.showInputs,
+      label: 'failed to restore input visibility preference'
+    });
+    state.showParameters = preferenceStorage.readBoolean(PARAM_VISIBILITY_STORAGE_KEY, {
+      defaultValue: state.showParameters,
+      label: 'failed to restore parameter visibility preference'
+    });
+    const storedResultsFilter = preferenceStorage.readString(RESULTS_FILE_FILTER_STORAGE_KEY, {
+      label: 'failed to restore results file filter'
+    });
     if (typeof storedResultsFilter === 'string' && storedResultsFilter) {
       state.resultsFileFilter = storedResultsFilter;
     }
   } catch (err) {
-    console.warn('[Showcase] failed to restore file prefix', err);
+    console.warn('[Showcase] failed to restore persisted preferences', err);
   }
   await loadTemplateCatalog();
   try {
@@ -14574,11 +11908,12 @@ async function init() {
     console.warn('[Showcase] backend detection failed', err);
   }
   await loadDocMetadata();
-  await loadTemplatePreferences();
-  rebuildTemplates();
-  attachEvents();
-  syncFilePrefixField();
-  await loadHistoryFromStorage();
+    await loadTemplatePreferences();
+    rebuildTemplates();
+    attachEvents();
+    syncFilePrefixField();
+    syncTemplatePreviewUi();
+    await loadHistoryFromStorage();
   renderHistory();
   const resultsContainer = document.getElementById('kc-results');
   if (resultsContainer) {
@@ -14589,6 +11924,7 @@ async function init() {
       await detectBackendOrigin();
     }
     await loadConfig();
+    await updateMcpConfigSummary({ silent: true });
     await loadCatalog();
   } catch (err) {
     console.error('[Showcase] initialization failed', err);
@@ -14597,6 +11933,7 @@ async function init() {
       enginesContainer.textContent = `バックエンドに接続できません: ${err.message}`;
     }
   }
+  scheduleShowcaseLayoutSync();
 }
 
 if (typeof document !== 'undefined') {

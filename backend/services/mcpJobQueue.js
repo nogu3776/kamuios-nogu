@@ -1,6 +1,6 @@
 const { randomUUID } = require('crypto');
 
-const { runMcpJob } = require('../showcase/jobRunner');
+const { runMcpJob } = require('./mcpJobRunner');
 
 const jobs = new Map();
 const cleanupTimers = new Map();

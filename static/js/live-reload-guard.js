@@ -1,7 +1,8 @@
 const DEFAULT_BLOCKED_SEGMENTS = [
+  '/showcase/',
   '/_showcase/',
-  'static/data/kamui-code/',
-  'data/kamui-code/'
+  'static/data/showcase/',
+  'data/showcase/'
 ];
 
 const DEFAULT_MEDIA_SEGMENTS = [

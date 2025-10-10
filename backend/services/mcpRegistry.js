@@ -2,45 +2,94 @@ const fs = require('fs');
 const path = require('path');
 
 const PROJECT_ROOT = path.join(__dirname, '..', '..');
-const ENV_CONFIG_PATH = process.env.KAMUI_CODE_CONFIG_PATH;
+const MCP_DIRECTORY = path.join(PROJECT_ROOT, 'mcp');
+const ENV_CONFIG_PATH = process.env.KAMUI_CODE_MCP_CONFIG_PATH;
+const DEFAULT_CONFIG_CANDIDATES = [
+  ENV_CONFIG_PATH,
+  path.join(MCP_DIRECTORY, 'mcp-kamui-code_local.json'),
+  path.join(MCP_DIRECTORY, 'mcp-kamui-code.json')
+].filter(Boolean);
+
 const DEFAULT_CONFIG_PATH = (() => {
-  if (ENV_CONFIG_PATH) return ENV_CONFIG_PATH;
-  const candidates = [
-    path.join(PROJECT_ROOT, 'mcp', 'mcp-kamui-code.json')
-  ];
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
+  for (const candidate of DEFAULT_CONFIG_CANDIDATES) {
+    if (candidate && fs.existsSync(candidate)) {
       return candidate;
     }
   }
-  return candidates[0];
+  return DEFAULT_CONFIG_CANDIDATES.find(Boolean) || '';
 })();
+
 const PROTOCOL_VERSION = process.env.KAMUI_CODE_PROTOCOL_VERSION || '2025-06-18';
 const AUTH_TOKEN = process.env.KAMUI_CODE_AUTH_TOKEN || '';
 const CACHE_TTL_MS = Number.parseInt(process.env.MCP_META_CACHE_TTL_MS || '600000', 10);
 
-let configCache = null;
-let configMtimeMs = 0;
+const configCacheByFile = new Map();
+let activeConfigFiles = (() => {
+  const initial = [];
+  if (DEFAULT_CONFIG_PATH && fs.existsSync(DEFAULT_CONFIG_PATH)) {
+    initial.push(path.resolve(DEFAULT_CONFIG_PATH));
+  }
+  return initial;
+})();
 
 const serverMetaCache = new Map(); // serverId -> { expiresAt, meta }
 
-function loadConfig() {
-  const configPath = DEFAULT_CONFIG_PATH;
-  const resolved = path.resolve(configPath);
+function resolveConfigPath(candidate) {
+  if (!candidate || typeof candidate !== 'string') return '';
+  const resolved = path.isAbsolute(candidate)
+    ? path.resolve(candidate)
+    : path.resolve(MCP_DIRECTORY, candidate);
+  if (!resolved.startsWith(MCP_DIRECTORY)) {
+    return '';
+  }
+  return resolved;
+}
+
+function readConfigFile(filePath) {
+  if (!filePath) return { mcpServers: {} };
+  const resolved = path.resolve(filePath);
   if (!fs.existsSync(resolved)) {
-    throw new Error(`MCP config file not found: ${resolved}`);
+    return { mcpServers: {} };
   }
   const stats = fs.statSync(resolved);
-  if (!configCache || stats.mtimeMs !== configMtimeMs) {
-    const raw = fs.readFileSync(resolved, 'utf8');
-    try {
-      configCache = JSON.parse(raw);
-      configMtimeMs = stats.mtimeMs;
-    } catch (err) {
-      throw new Error(`Failed to parse MCP config JSON (${resolved}): ${err.message}`);
-    }
+  const cached = configCacheByFile.get(resolved);
+  if (cached && cached.mtimeMs === stats.mtimeMs) {
+    return cached.data;
   }
-  return configCache;
+  const raw = fs.readFileSync(resolved, 'utf8');
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    throw new Error(`Failed to parse MCP config JSON (${resolved}): ${err.message}`);
+  }
+  configCacheByFile.set(resolved, {
+    data: parsed,
+    mtimeMs: stats.mtimeMs
+  });
+  return parsed;
+}
+
+function loadConfig() {
+  if (!Array.isArray(activeConfigFiles) || activeConfigFiles.length === 0) {
+    return { mcpServers: {} };
+  }
+  const aggregated = { mcpServers: {} };
+  activeConfigFiles.forEach((filePath) => {
+    try {
+      const data = readConfigFile(filePath);
+      const servers = data?.mcpServers && typeof data.mcpServers === 'object'
+        ? data.mcpServers
+        : {};
+      Object.entries(servers).forEach(([id, entry]) => {
+        if (!id) return;
+        aggregated.mcpServers[id] = entry;
+      });
+    } catch (err) {
+      console.error('[MCP] config load error', err);
+    }
+  });
+  return aggregated;
 }
 
 function deriveCategory(serverId) {
@@ -232,9 +281,6 @@ async function listServers({ category = null, forceRefresh = false } = {}) {
   const config = loadConfig();
   const entries = config.mcpServers || {};
   const ids = Object.keys(entries).filter((id) => {
-    const entry = entries[id];
-    // httpタイプのMCPサーバーのみ処理
-    if (entry.type !== 'http') return false;
     if (!category) return true;
     return deriveCategory(id) === category;
   });
@@ -279,6 +325,58 @@ function getConfigSummary() {
   }));
 }
 
+function listConfigFiles() {
+  if (!fs.existsSync(MCP_DIRECTORY)) {
+    return [];
+  }
+  const files = fs.readdirSync(MCP_DIRECTORY)
+    .filter((name) => name.toLowerCase().endsWith('.json'))
+    .sort((a, b) => a.localeCompare(b, 'ja'));
+  return files.map((fileName) => {
+    const absolutePath = path.join(MCP_DIRECTORY, fileName);
+    let stats = null;
+    try {
+      stats = fs.statSync(absolutePath);
+    } catch (err) {
+      stats = null;
+    }
+    return {
+      fileName,
+      relativePath: path.relative(PROJECT_ROOT, absolutePath),
+      absolutePath,
+      size: stats ? stats.size : 0,
+      mtimeMs: stats ? stats.mtimeMs : 0,
+      active: activeConfigFiles.some((entry) => entry === absolutePath)
+    };
+  });
+}
+
+function getActiveConfigFiles() {
+  return Array.isArray(activeConfigFiles) ? activeConfigFiles.slice() : [];
+}
+
+function setActiveConfigFiles(fileNames = []) {
+  const nextFiles = [];
+  const seen = new Set();
+  (Array.isArray(fileNames) ? fileNames : []).forEach((candidate) => {
+    if (typeof candidate !== 'string' || !candidate.trim()) return;
+    const resolved = resolveConfigPath(candidate.trim());
+    if (!resolved) return;
+    if (!fs.existsSync(resolved)) {
+      console.warn(`[MCP] config file not found: ${resolved}`);
+      return;
+    }
+    if (seen.has(resolved)) return;
+    seen.add(resolved);
+    nextFiles.push(resolved);
+  });
+
+  activeConfigFiles = nextFiles;
+  configCacheByFile.clear();
+  refreshAll();
+  return getActiveConfigFiles();
+}
+
 module.exports = {
   getServerMeta,
   listServers,
@@ -286,5 +384,9 @@ module.exports = {
   refreshServer,
   refreshAll,
   getConfigSummary,
-  DEFAULT_CONFIG_PATH
+  DEFAULT_CONFIG_PATH,
+  MCP_DIRECTORY,
+  listConfigFiles,
+  getActiveConfigFiles,
+  setActiveConfigFiles
 };

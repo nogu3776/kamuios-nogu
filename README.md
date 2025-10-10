@@ -26,7 +26,7 @@
 
 ```bash
 # 1. クローンして移動
-git clone https://github.com/nogu3776/kamuios-nogu.git kamuios && cd kamuios
+git clone https://github.com/nogu3776/kamuios-nogu.git && cd kamuios-nogu
 
 # 2. 環境設定
 cp env.sample .env
@@ -50,16 +50,17 @@ KamuiOSは以下の機能を提供します：
 #### 前提条件
 
 - Node.js 18.x 以上
-- Hugo 0.110.0 以上
+- Hugo 0.110.0 以上（WSL2 では `sudo snap install hugo` が簡単）
 - Claude Code CLI（[インストール手順](https://github.com/anthropics/claude-code)）
 - Claude API Key（[Anthropic](https://www.anthropic.com/)から取得）
+- （fal アップローダー利用時）Python 3.10 以上 + `pip install fal-client python-dotenv`
 
 #### 1. プロジェクトのクローンと環境設定
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/nogu3776/kamuios-nogu.git kamuios
-cd kamuios
+git clone https://github.com/nogu3776/kamuios-nogu.git
+cd kamuios-nogu
 
 # 環境設定ファイルをコピー
 cp env.sample .env
@@ -87,6 +88,11 @@ CLAUDE_DEBUG=1  # デバッグモード（0 または 1）
 GEMINI_API_KEY=  # プロンプトジェネレーター用（Showcase機能）
 FAL_KEY=  # ファイルアップロード用（Showcase、Image Remix Studio）
 ```
+
+> 補足
+> - `ANTHROPIC_API_KEY` や他の環境変数は、未使用でも行ごとコメントアウトせずに空欄のまま残してください。
+> - `SCAN_PATH` は `kamuios-nogu/static` ディレクトリの **絶対パス** を指定します。WSL2 では `/mnt/c/Users/<UserName>/kamuios-nogu/static` のように記述します。
+> - fal アップローダー用に仮想環境を使う場合は、`.env` に `PYTHON_PATH=/home/<user>/kamuios-nogu/.venv/bin/python3` を追記します。
 
 #### 3. 一括起動（推奨）
 
@@ -117,25 +123,84 @@ FAL_KEY=  # ファイルアップロード用（Showcase、Image Remix Studio）
 # または実行中に Ctrl+C
 ```
 
-#### 6. Windows での起動
+#### 6. Windows (WSL2) での起動
 
-Windowsユーザーは `start_all.bat` を使用してください：
+> `start_all.bat` は非推奨です。Windows では **WSL2 + Ubuntu** を用意し、Linux と同じ `start_all.sh` を実行してください。
 
-```cmd
-REM 1. クローンして移動
-git clone https://github.com/nogu3776/kamuios-nogu.git kamuios
-cd kamuios
+1. **WSL2 を準備**
+   - 「Windows の機能の有効化」で WSL を有効化し、Microsoft Store から Ubuntu をインストール
+2. **必須ツールをインストール**
+   ```bash
+   sudo apt update
+   sudo snap install hugo          # Hugo が未インストールの場合
+   sudo apt install -y dos2unix    # 改行コード変換ツール
+   ```
+3. **リポジトリをクローンして環境を整える**
+   ```bash
+   git clone https://github.com/nogu3776/kamuios-nogu.git
+   cd kamuios-nogu
+   cp env.sample .env
+   dos2unix start_all.sh .env      # 改行コードをLFへ統一
+   ```
+4. **Node.js のパーミッションエラーが出る場合は再インストール**
+   ```bash
+   curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+   sudo apt-get install -y nodejs
+   ```
+5. **fal アップローダーを使う場合の仮想環境セットアップ（任意）**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install --upgrade pip
+   pip install fal-client python-dotenv
+   ```
+   - `.env` に `PYTHON_PATH=/home/<user>/kamuios-nogu/.venv/bin/python3` を追記します。
+6. **起動とアクセス**
+   ```bash
+   ./start_all.sh
+   ```
+   - `SCAN_PATH` は `kamuios-nogu/static` への **フルパス** を指定してください。
+     - 例: `/mnt/c/Users/<UserName>/kamuios-nogu/static`
+   - WSL2 ではブラウザの自動起動が機能しないため、Windows 側のブラウザで `http://localhost:1313` を手動で開きます。
+   - 複数の MCP を読み込むため、初回起動には数分かかる場合があります。
 
-REM 2. 環境設定
-copy env.sample .env
-REM .envをメモ帳などで編集
 
-REM 3. 起動
-start_all.bat
+### 既存クローンを最新版へ更新するには
 
-REM 停止
-start_all.bat stop
-```
+1. `git status` でローカル変更を確認し、テンプレートなど追跡対象ファイルを編集している場合はコミットまたは `git stash`。
+2. 個人データを保護したい場合は、以下を任意のバックアップ先にコピー：
+   - `static/showcase/`（Showcase で生成したメディア全般）
+   - `logs/showcase/state/`（生成履歴・カスタムプロンプトテンプレート）
+   - `static/data/showcase/prompt-template-prefs.json`（UI プリファレンス）
+   - `logs/showcase/` 配下（ジョブログ）
+3. upstream（本家）と origin（自分の Fork）の両方を利用する場合は次の順番で更新します。
+   ```bash
+   git fetch upstream
+   git merge upstream/main      # または git rebase upstream/main
+   git pull origin main         # Fork 側の最新を取り込み
+   ```
+4. 依存関係が変わった場合に備えて `npm install` を再実行。
+5. `./start_all.sh` で起動し、Kamui Code Showcase のプロンプトテンプレートと生成履歴が正しく読み込まれるかを簡単に確認します。
+6. 秘匿情報が混入していないかを以下のコマンド例でチェック：
+   ```bash
+   rg '/Users/'
+   rg 'sk-[a-zA-Z0-9]+'
+   rg 'http.*fal'
+   ```
+7. 旧バージョンで生成されたローカル専用ディレクトリが残っている場合は整理します。
+   - `static/data/kamui-code/` や `logs/mcp-showcase/`、`logs/prompt-generator/` などは現在は使用していないため、必要に応じてバックアップ後に削除して構いません。
+
+
+### データの保存場所とバックアップ
+
+| 種別 | ディレクトリ | Git 追跡 | 備考 |
+|------|--------------|----------|------|
+| 生成メディア | `static/showcase/` | ❌ `.gitignore` 済み | バックアップしない限り復元不可。必要な成果物は別ディレクトリへコピー |
+| 生成ログ | `logs/showcase/*.log` | ❌ | `tail -f` で監視可能。不要になったら手動削除 |
+| 生成履歴・カスタムプロンプトテンプレート | `logs/showcase/state/` | ❌ | 追加テンプレや履歴を保持。バックアップ推奨 |
+| UI プリファレンス | `static/data/showcase/prompt-template-prefs.json` | ❌ | 直近で使用したテンプレートなどを記憶。必要ならコピー |
+
+これらは公開リポジトリに含めない想定です。共有したいサンプルを追加する場合は別ディレクトリに配置し、README で明示してください。
 
 
 ### トラブルシューティング
@@ -172,15 +237,13 @@ tail -f logs/node_server.log     # Node.jsサーバー
 tail -f logs/hugo_server.log     # Hugoサーバー
 ```
 
-#### 環境変数の問題
+#### Windows / WSL2 Tips
 
-```bash
-# .envファイルが正しく読み込まれているか確認
-cat .env | grep -v '^#'
-
-# MCP設定ファイルの存在確認
-ls -la $CLAUDE_MCP_CONFIG_PATH
-```
+- `.env` の行は未使用でもコメントアウトせず空欄のまま残す（MCP 読み込み時にキーが欠けるとエラーになるため）。
+- `SCAN_PATH` はフルパスで指定し、C ドライブを指す場合は `/mnt/c/...` 形式を使用。
+- fal アップローダーを使う場合は `pip install fal-client python-dotenv` を仮想環境内で実行し、`.env` に `PYTHON_PATH` を追加。
+- WSL ではブラウザ自動起動が行われないので、`http://localhost:1313` を手動で開く。
+- 起動に時間がかかる場合は MCP 読み込み待ちの可能性が高いので、ログ (`logs/showcase/<日付>.log`) と `top` で状態を確認する。
 
 ## 主な機能
 
@@ -213,6 +276,9 @@ Kamui Codeを使ったクリエイティブ生成システムです。
 
 - 🎨 テンプレートベースの生成ワークフロー
 - 🖼️ 画像・動画・3D・音楽生成に対応
+
+📘 ドキュメント
+- [Kamui Code Showcase 利用ガイド](guides/kamui-code-showcase.md)
 
 アクセス: http://localhost:1313/#kamui-code-showcase
 

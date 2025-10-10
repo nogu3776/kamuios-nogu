@@ -32,10 +32,11 @@ function loadDotEnv() {
 
 loadDotEnv();
 
-const ENV_CONFIG_PATH = process.env.KAMUI_CODE_CONFIG_PATH;
+const ENV_CONFIG_PATH = process.env.KAMUI_CODE_MCP_CONFIG_PATH;
 const DEFAULT_CONFIG_PATH = (() => {
   if (ENV_CONFIG_PATH) return ENV_CONFIG_PATH;
   const candidates = [
+    path.join(PROJECT_ROOT, 'mcp', 'mcp-kamui-code_local.json'),
     path.join(PROJECT_ROOT, 'mcp', 'mcp-kamui-code.json')
   ];
   for (const candidate of candidates) {

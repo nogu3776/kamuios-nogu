@@ -35,7 +35,10 @@ export default function showcaseTemplate() {
               <span class="kc-engine-toolbar__label" id="kc-engine-toolbar-label">MCP</span>
               <div class="kc-panel-tabs kc-panel-tabs--main" id="kc-engine-tabs"></div>
               <div class="kc-engine-stats" id="kc-engine-stats" aria-live="polite"></div>
-              <div class="kc-engine-toolbar__search" id="kc-engine-toolbar-search"></div>
+              <div class="kc-engine-toolbar__search" id="kc-engine-toolbar-search">
+                <div class="kc-engine-toolbar__search-slot" id="kc-engine-toolbar-search-slot"></div>
+                <button id="kc-mcp-config-button" type="button" class="kc-button kc-button--ghost">MCP設定</button>
+              </div>
             </div>
             <div class="kc-engines" id="kc-engines"></div>
           </div>
@@ -50,7 +53,7 @@ export default function showcaseTemplate() {
                   id="kc-prompt"
                   rows="1"
                   data-min-height="36"
-                  data-max-height="520"
+                  data-max-height="240"
                   placeholder="プロンプトを入力してください"
                   aria-label="プロンプトを入力"
                 ></textarea>
@@ -60,22 +63,43 @@ export default function showcaseTemplate() {
                     class="kc-field__textarea"
                     rows="1"
                     data-min-height="36"
-                    data-max-height="520"
+                    data-max-height="240"
                     placeholder="音声テキストを入力してください"
                     aria-label="音声テキスト"
                   ></textarea>
                 </div>
               </div>
               <div class="kc-prompt-side">
-                <label class="kc-field kc-field--prefix" for="kc-file-prefix">
-                  <input
-                    id="kc-file-prefix"
-                    type="text"
-                    class="kc-field__input"
-                    autocomplete="off"
-                    aria-label="ファイル名接頭辞"
-                  />
-                </label>
+                <div class="kc-prefix-row">
+                  <label class="kc-field kc-field--prefix" for="kc-file-prefix">
+                    <input
+                      id="kc-file-prefix"
+                      type="text"
+                      class="kc-field__input"
+                      autocomplete="off"
+                      aria-label="ファイル名接頭辞"
+                    />
+                  </label>
+                  <button
+                    id="kc-template-reset"
+                    type="button"
+                    class="kc-button-icon kc-template-reset"
+                    title="表示をリセット"
+                      aria-label="表示をリセット"
+                      disabled
+                    >
+                      <span class="kc-template-reset__icon" aria-hidden="true">
+                        <svg viewBox="0 0 20 20" focusable="false" class="kc-template-reset__svg">
+                          <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="1.3" opacity="0.85"></circle>
+                          <path d="M7 7l6 6m0-6l-6 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+                        </svg>
+                      </span>
+                    </button>
+                </div>
+                <div class="kc-template-preview" id="kc-template-preview" hidden>
+                  <div class="kc-template-preview__name" id="kc-template-preview-name"></div>
+                  <div class="kc-template-preview__memo" id="kc-template-preview-memo"></div>
+                </div>
                 <div class="kc-prompt-actions">
                   <button id="kc-prompt-generator-toggle" type="button" class="kc-button kc-button--ghost">ジェネ</button>
                   <button id="kc-template" type="button" class="kc-button kc-button--ghost">テンプレ</button>
@@ -243,13 +267,12 @@ export default function showcaseTemplate() {
           <div class="kc-panel__header kc-panel__header--results">
             <div class="kc-results-header">
               <div class="kc-results-header__column kc-results-header__column--left">
-                <div class="kc-results-header__section kc-results-header__section--title">
-                  <div class="kc-panel__title-group">
-                    <h3 class="kc-panel__title">生成結果</h3>
-                    <div class="kc-panel__tags">
-                      <span class="kc-badge" id="kc-results-category"></span>
-                      <span class="kc-badge kc-badge--type" id="kc-results-type"></span>
-                    </div>
+              <div class="kc-results-header__section kc-results-header__section--title">
+                <span class="kc-results-title">生成結果</span>
+                <div class="kc-results-tags">
+                  <span class="kc-badge" id="kc-results-category"></span>
+                  <span class="kc-badge kc-badge--type" id="kc-results-type"></span>
+                  <span class="kc-results-template" id="kc-results-template-name"></span>
                   </div>
                 </div>
                 <div class="kc-results-header__section kc-results-header__section--toggles">
@@ -290,14 +313,15 @@ export default function showcaseTemplate() {
                       </select>
                     </div>
                     <div class="kc-results-prompt-host" id="kc-results-prompt-host" hidden aria-hidden="true">
-                      <div class="kc-results-prompt" id="kc-results-prompt"></div>
-                      <div class="kc-results-prompt-panel" id="kc-results-prompt-panel" hidden aria-labelledby="kc-results-prompt-panel-title">
-                        <div class="kc-results-prompt-panel__title" id="kc-results-prompt-panel-title">prompt</div>
-                        <pre class="kc-results-prompt__content" id="kc-results-prompt-text"></pre>
-                      </div>
+                    <div class="kc-results-prompt" id="kc-results-prompt"></div>
+                    <div class="kc-results-prompt-panel" id="kc-results-prompt-panel" hidden aria-labelledby="kc-results-prompt-panel-title">
+                      <div class="kc-results-prompt-panel__title" id="kc-results-prompt-panel-title">prompt</div>
+                      <div class="kc-results-prompt-panel__memo" id="kc-results-prompt-memo"></div>
+                      <pre class="kc-results-prompt__content" id="kc-results-prompt-text"></pre>
                     </div>
                   </div>
                 </div>
+              </div>
               </div>
               <div class="kc-results-header__column kc-results-header__column--right">
                 <div class="kc-results-header__section kc-results-header__section--actions">

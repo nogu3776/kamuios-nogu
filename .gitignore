@@ -20,6 +20,7 @@ Thumbs.db
 *.swp
 *.swo
 *~
+.claude/
 
 # Logs
 *.log
@@ -37,6 +38,7 @@ logs/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*
 
 # Temporary files
 *.tmp
@@ -51,7 +53,20 @@ static/data/prompts/private_*.md
 static/videos/private_*.mp4
 static/images/private_*.*
 
-# Showcase generated data (Git管理外)
-static/data/showcase/
+# Showcase generator outputs (local only; drop for public repos if unnecessary)
+static/data/showcase/history.json
+static/data/showcase/prompt-template-prefs.json
+static/data/showcase/sora-index.json
 static/showcase/
-showcase/
+promos/
+
+# MCP configs (local only)
+mcp/
+
+# Local tooling indexes
+.cursorindexingignore
+.cursor/
+
+# Local documentation & spec artifacts
+.specstory/
+docs/

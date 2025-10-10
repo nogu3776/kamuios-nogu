@@ -4,20 +4,42 @@ const http = require('http');
 const crypto = require('crypto');
 const { exec, spawn } = require('child_process');
 
+const { runImageEdit } = require('./services/imageRemixService');
 const {
     listServers,
     listCategories,
     refreshServer,
-    refreshAll
+    refreshAll,
+    listConfigFiles,
+    getActiveConfigFiles,
+    setActiveConfigFiles,
+    MCP_DIRECTORY
 } = require('./services/mcpRegistry');
 const jobQueue = require('./services/mcpJobQueue');
-const { generatePromptSuggestions } = require('./showcase/promptGenerator');
+const { generatePromptSuggestions } = require('./services/promptGenerator');
 const { createSession: createPtySession } = require('./ptyManager');
-const showcase = require('./showcase');
-const imageRemix = require('./image-remix');
 
 const PROJECT_ROOT = path.join(__dirname, '..');
 const SAAS_DIR = path.join(PROJECT_ROOT, 'data', 'saas');
+const STATIC_SHOWCASE_DATA_DIR = path.join(PROJECT_ROOT, 'static', 'data', 'showcase');
+const SHOWCASE_LOG_ROOT = path.join(PROJECT_ROOT, 'logs', 'showcase');
+const LEGACY_SHOWCASE_LOG_ROOT = path.join(PROJECT_ROOT, 'logs', 'mcp-showcase');
+const SHOWCASE_STATE_DIR = path.join(SHOWCASE_LOG_ROOT, 'state');
+const LEGACY_SHOWCASE_STATE_DIR = path.join(LEGACY_SHOWCASE_LOG_ROOT, 'state');
+const SHOWCASE_HISTORY_FILE = path.join(SHOWCASE_STATE_DIR, 'history.json');
+const LEGACY_SHOWCASE_HISTORY_FILE = path.join(LEGACY_SHOWCASE_STATE_DIR, 'history.json');
+const SHOWCASE_PROMPT_TEMPLATE_PREFS_FILE = path.join(SHOWCASE_STATE_DIR, 'prompt-template-prefs.json');
+const DEPRECATED_SHOWCASE_TEMPLATE_PREFS_FILE = path.join(SHOWCASE_STATE_DIR, 'template-prefs.json');
+const LEGACY_SHOWCASE_PROMPT_TEMPLATE_PREFS_FILE = path.join(LEGACY_SHOWCASE_STATE_DIR, 'template-prefs.json');
+const SHOWCASE_STATIC_HISTORY_FILE = path.join(STATIC_SHOWCASE_DATA_DIR, 'history.json');
+const SHOWCASE_STATIC_PROMPT_TEMPLATE_PREFS_FILE = path.join(STATIC_SHOWCASE_DATA_DIR, 'prompt-template-prefs.json');
+
+const SHOWCASE_SUPPORTED_CATEGORIES = new Set(['image', 'video', '3d', 'sound', 'other']);
+const SHOWCASE_TYPE_PREFIXES = new Set([
+    't2i', 'i2i', 't2v', 'i2v', 'r2v', 's2v', 'a2v', 'v2v',
+    'v2a', 'v2sfx', 't2a', 't2s', 'tts', 't2m', 'i2i3d',
+    't2visual', 'file', 'train', 'misc'
+]);
 
 function ensureDirectorySync(targetDir) {
     if (!targetDir) return;
@@ -49,9 +71,254 @@ function toSafeNumber(value, fallback = 0) {
     return Number.isFinite(numeric) ? numeric : fallback;
 }
 
-// Showcase データ管理関数は showcase/dataService.js に移動
-const { loadShowcaseHistory, saveShowcaseHistory } = showcase.dataService;
-const { loadTemplatePreferences: loadTemplatePreferencesFile, saveTemplatePreferences: saveTemplatePreferencesFile } = showcase.dataService;
+function sanitizeTypeList(list) {
+    if (!Array.isArray(list)) return [];
+    return list
+        .filter((item) => typeof item === 'string' && item.trim())
+        .map((item) => toSafeString(item, { maxLength: 120 }));
+}
+
+function sanitizeSavedFile(input) {
+    if (!input || typeof input !== 'object') return null;
+    const sanitized = {};
+    const stringFields = ['absolute', 'relative', 'webPath', 'filename', 'fileName', 'extension', 'prefix', 'engine', 'timestamp', 'requestId'];
+    stringFields.forEach((field) => {
+        if (typeof input[field] === 'string') {
+            sanitized[field] = toSafeString(input[field], { maxLength: 4000 });
+        }
+    });
+    if (Number.isFinite(input.size)) {
+        sanitized.size = Number(input.size);
+    }
+    if (Number.isFinite(input.index)) {
+        sanitized.index = Number(input.index);
+    }
+    if (Number.isFinite(input.total)) {
+        sanitized.total = Number(input.total);
+    }
+    return Object.keys(sanitized).length ? sanitized : null;
+}
+
+function sanitizeHistoryFilters(filters) {
+    const defaults = { category: 'all', prefix: 'all' };
+    if (!filters || typeof filters !== 'object') {
+        return defaults;
+    }
+    let category = normalizeStoredCategoryValue(filters.category, 'all');
+    if (category !== 'all' && !SHOWCASE_SUPPORTED_CATEGORIES.has(category)) {
+        category = 'all';
+    }
+    let prefix = normalizeStoredTypeValue(filters.prefix);
+    if (!prefix) {
+        prefix = 'all';
+    } else if (prefix !== 'all' && prefix !== 'other' && !SHOWCASE_TYPE_PREFIXES.has(prefix)) {
+        prefix = 'all';
+    }
+    return { category, prefix };
+}
+
+function sanitizeHistoryResult(result) {
+    if (!result || typeof result !== 'object') return null;
+    const sanitized = {};
+    const stringFields = [
+        'engineId',
+        'engineLabel',
+        'label',
+        'imageUrl',
+        'logFile',
+        'category',
+        'sourceCategory',
+        'type',
+        'requestId',
+        'error',
+        'status',
+        'webPath',
+        'absolutePath',
+        'thumbnailUrl',
+        'previewUrl',
+        'fileName',
+        'filePrefix',
+        'timestamp'
+    ];
+    stringFields.forEach((field) => {
+        if (typeof result[field] === 'string') {
+            sanitized[field] = toSafeString(result[field], { maxLength: 4000 });
+        }
+    });
+    if (Number.isFinite(result.durationMs)) {
+        sanitized.durationMs = Number(result.durationMs);
+    }
+    if (Number.isFinite(result.savedFileIndex)) {
+        sanitized.savedFileIndex = Number(result.savedFileIndex);
+    }
+    if (Number.isFinite(result.savedFilesCount)) {
+        sanitized.savedFilesCount = Number(result.savedFilesCount);
+    }
+    if (Array.isArray(result.typePrefixes)) {
+        sanitized.typePrefixes = sanitizeTypeList(result.typePrefixes);
+    }
+    if (Array.isArray(result.logs)) {
+        const collectedLogs = result.logs
+            .map((entry) => (typeof entry === 'string' ? toSafeString(entry, { maxLength: 4000 }) : null))
+            .filter(Boolean);
+        if (collectedLogs.length) sanitized.logs = collectedLogs;
+    }
+    if (Array.isArray(result.statusHistory)) {
+        const collectedStatus = result.statusHistory
+            .map((entry) => (typeof entry === 'string' ? toSafeString(entry, { maxLength: 4000 }) : null))
+            .filter(Boolean);
+        if (collectedStatus.length) sanitized.statusHistory = collectedStatus;
+    }
+    if (result.savedFile) {
+        const saved = sanitizeSavedFile(result.savedFile);
+        if (saved) sanitized.savedFile = saved;
+    }
+    if (Array.isArray(result.savedFiles)) {
+        const savedFiles = result.savedFiles
+            .map(sanitizeSavedFile)
+            .filter(Boolean);
+        if (savedFiles.length) sanitized.savedFiles = savedFiles;
+    }
+    if (Array.isArray(result.tags)) {
+        sanitized.tags = sanitizeTypeList(result.tags);
+    }
+    return Object.keys(sanitized).length ? sanitized : {};
+}
+
+function normalizeStoredCategoryValue(value, fallback = 'image') {
+    const sanitized = toSafeString(value, { maxLength: 120, fallback });
+    const lower = sanitized.toLowerCase();
+    if (!lower) return fallback;
+    if (lower === 'text' || lower === 'img' || lower === 'images') {
+        return 'image';
+    }
+    return lower;
+}
+
+function normalizeStoredTypeValue(value) {
+    const sanitized = toSafeString(value, { maxLength: 120, fallback: '' });
+    return sanitized.toLowerCase();
+}
+
+function sanitizeHistoryPayload(payload) {
+    const version = Number.isFinite(payload?.version) ? Number(payload.version) : 1;
+    const entries = Array.isArray(payload?.entries) ? payload.entries : [];
+    const sanitizedEntries = entries
+        .map((entry) => {
+            if (!entry || typeof entry !== 'object') return null;
+            const category = normalizeStoredCategoryValue(entry.category, 'image');
+            const sanitized = {
+                id: toSafeId(entry.id, `run-${category}-${Date.now()}`),
+                prompt: toSafeString(entry.prompt, { maxLength: 8000, fallback: '' }),
+                createdAt: toSafeNumber(entry.createdAt, Date.now()),
+                category,
+                sourceCategories: sanitizeTypeList(entry.sourceCategories)
+            };
+            if (Array.isArray(entry.results)) {
+                sanitized.results = entry.results
+                    .map(sanitizeHistoryResult)
+                    .filter((item) => item && typeof item === 'object');
+            } else {
+                sanitized.results = [];
+            }
+            return sanitized;
+        })
+        .filter(Boolean)
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const filters = sanitizeHistoryFilters(payload?.filters);
+    return { version, entries: sanitizedEntries, filters };
+}
+
+function readJsonFileSafe(filePath, fallback = {}) {
+    try {
+        const raw = fs.readFileSync(filePath, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return fallback;
+        return parsed;
+    } catch (err) {
+        if (err && err.code !== 'ENOENT') {
+            console.warn('[Showcase] JSON read error', filePath, err.message);
+        }
+        return fallback;
+    }
+}
+
+function writeJsonFileSafe(filePath, data) {
+    ensureDirectorySync(path.dirname(filePath));
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+}
+
+function loadShowcaseHistory() {
+    const primary = readJsonFileSafe(SHOWCASE_HISTORY_FILE, null);
+    if (primary && typeof primary === 'object') {
+        return sanitizeHistoryPayload(primary);
+    }
+    if (LEGACY_SHOWCASE_HISTORY_FILE !== SHOWCASE_HISTORY_FILE) {
+        const legacy = readJsonFileSafe(LEGACY_SHOWCASE_HISTORY_FILE, null);
+        if (legacy && typeof legacy === 'object') {
+            writeJsonFileSafe(SHOWCASE_HISTORY_FILE, legacy);
+            return sanitizeHistoryPayload(legacy);
+        }
+    }
+    const fallback = readJsonFileSafe(SHOWCASE_STATIC_HISTORY_FILE, { version: 1, entries: [] });
+    return sanitizeHistoryPayload(fallback);
+}
+
+function saveShowcaseHistory(payload) {
+    const sanitized = sanitizeHistoryPayload(payload);
+    writeJsonFileSafe(SHOWCASE_HISTORY_FILE, sanitized);
+    return sanitized;
+}
+
+function sanitizeTemplatePreferences(payload) {
+    const version = Number.isFinite(payload?.version) ? Number(payload.version) : 3;
+    const hidden = sanitizeTypeList(payload?.hidden).map((item) => toSafeString(item, { maxLength: 160 }));
+    const custom = Array.isArray(payload?.custom)
+        ? payload.custom
+            .map((entry) => {
+                if (!entry || typeof entry !== 'object') return null;
+                return {
+                    id: toSafeId(entry.id, `tpl-${Date.now()}`),
+                    name: toSafeString(entry.name, { maxLength: 240, fallback: 'Custom Template' }),
+                    prompt: toSafeString(entry.prompt, { maxLength: 8000, fallback: '' }),
+                    category: normalizeStoredCategoryValue(entry.category, 'image'),
+                    type: normalizeStoredTypeValue(entry.type),
+                    filePrefix: toSafeString(entry.filePrefix, { maxLength: 240, fallback: '' }),
+                    memo: toSafeString(entry.memo, { maxLength: 2000, fallback: '' })
+                };
+            })
+            .filter(Boolean)
+        : [];
+    return { version, hidden, custom };
+}
+
+function loadTemplatePreferencesFile() {
+    const primary = readJsonFileSafe(SHOWCASE_PROMPT_TEMPLATE_PREFS_FILE, null);
+    if (primary && typeof primary === 'object') {
+        return sanitizeTemplatePreferences(primary);
+    }
+
+    const deprecated = readJsonFileSafe(DEPRECATED_SHOWCASE_TEMPLATE_PREFS_FILE, null);
+    if (deprecated && typeof deprecated === 'object') {
+        writeJsonFileSafe(SHOWCASE_PROMPT_TEMPLATE_PREFS_FILE, deprecated);
+        return sanitizeTemplatePreferences(deprecated);
+    }
+
+    const legacy = readJsonFileSafe(LEGACY_SHOWCASE_PROMPT_TEMPLATE_PREFS_FILE, null);
+    if (legacy && typeof legacy === 'object') {
+        writeJsonFileSafe(SHOWCASE_PROMPT_TEMPLATE_PREFS_FILE, legacy);
+        return sanitizeTemplatePreferences(legacy);
+    }
+
+    const fallback = readJsonFileSafe(SHOWCASE_STATIC_PROMPT_TEMPLATE_PREFS_FILE, { version: 2, hidden: [], custom: [] });
+    return sanitizeTemplatePreferences(fallback);
+}
+
+function saveTemplatePreferencesFile(payload) {
+    const sanitized = sanitizeTemplatePreferences(payload);
+    writeJsonFileSafe(SHOWCASE_PROMPT_TEMPLATE_PREFS_FILE, sanitized);
+    return sanitized;
+}
 
 // .envファイルを読み込む（dotenvパッケージなしで実装）
 function loadEnv() {
@@ -212,13 +479,13 @@ function logSanitizedEnv() {
 }
 logSanitizedEnv();
 
-// Kamui Code 設定
-const DEFAULT_CLAUDE_MCP_CONFIG = process.env.KAMUI_CODE_CONFIG_PATH;
-console.log(`[ENV] KAMUI_CODE_CONFIG_PATH=${DEFAULT_CLAUDE_MCP_CONFIG || '(not set)'}`);
+// Claude Code CLI 設定
+const DEFAULT_CLAUDE_MCP_CONFIG = process.env.CLAUDE_MCP_CONFIG_PATH;
+console.log(`[ENV] CLAUDE_MCP_CONFIG_PATH=${DEFAULT_CLAUDE_MCP_CONFIG || '(not set)'}`);
 if (DEFAULT_CLAUDE_MCP_CONFIG && fs.existsSync(DEFAULT_CLAUDE_MCP_CONFIG)) {
-    console.log(`[ENV] Kamui Code config file exists at ${DEFAULT_CLAUDE_MCP_CONFIG}`);
+    console.log(`[ENV] MCP config file exists at ${DEFAULT_CLAUDE_MCP_CONFIG}`);
 } else if (DEFAULT_CLAUDE_MCP_CONFIG) {
-    console.error(`[ENV] WARNING: Kamui Code config file NOT found at ${DEFAULT_CLAUDE_MCP_CONFIG}`);
+    console.error(`[ENV] WARNING: MCP config file NOT found at ${DEFAULT_CLAUDE_MCP_CONFIG}`);
 }
 
 // タスク管理（メモリ内）
@@ -531,8 +798,8 @@ function startClaudeTask({ prompt, mcpConfigPath, cwd, extraArgs, importance, ur
     const priorityUrgency = resolvePriorityLevel(urgency);
     
     if (!resolvedMcp) {
-        console.error('[ERROR] KAMUI_CODE_CONFIG_PATH environment variable is not set');
-        throw new Error('Kamui Code configuration path is required. Set KAMUI_CODE_CONFIG_PATH environment variable.');
+        console.error('[ERROR] CLAUDE_MCP_CONFIG_PATH environment variable is not set');
+        throw new Error('MCP configuration path is required. Set CLAUDE_MCP_CONFIG_PATH environment variable.');
     }
     
     // CLIコマンドの構築
@@ -964,11 +1231,11 @@ function resolvePtyCommandConfig(payload) {
         const providedMcp = payload.mcpConfigPath && typeof payload.mcpConfigPath === 'string'
             ? payload.mcpConfigPath.trim()
             : null;
-        const resolvedMcp = providedMcp || process.env.KAMUI_CODE_CONFIG_PATH || null;
+        const resolvedMcp = providedMcp || process.env.CLAUDE_MCP_CONFIG_PATH || null;
         if (resolvedMcp) {
             args.push('--mcp-config', resolvedMcp);
         } else {
-            console.warn('[PTY] KAMUI_CODE_CONFIG_PATH is not set; interactive session may lack MCP context');
+            console.warn('[PTY] CLAUDE_MCP_CONFIG_PATH is not set; interactive session may lack MCP context');
         }
 
         const maxTurnsEnv = process.env.CLAUDE_MAX_TURNS;
@@ -1504,6 +1771,7 @@ const jsonExtensions  = ['json'];
 const textExtensions  = ['txt', 'md', 'markdown', 'log'];
 const codeExtensions  = ['js', 'ts', 'tsx', 'jsx', 'py', 'rb', 'go', 'rs', 'java', 'c', 'cc', 'cpp', 'h', 'hpp', 'cs', 'php', 'sh', 'bash', 'zsh', 'fish'];
 const docExtensions   = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'csv', 'tsv'];
+const IGNORED_DIRECTORY_SEGMENTS = new Set(['sora-prepared']);
 
 // ディレクトリをスキャンする関数
 function scanDirectory(dirPath, baseDir = null, depth = 0, maxDepth = 5) {
@@ -1526,6 +1794,12 @@ function scanDirectory(dirPath, baseDir = null, depth = 0, maxDepth = 5) {
             const fullPath = path.join(dirPath, item);
             const relativePath = path.relative(baseDir, fullPath);
             const stat = fs.statSync(fullPath);
+
+            const segments = relativePath.split(path.sep).filter(Boolean);
+            const skipEntry = segments.some((segment) => IGNORED_DIRECTORY_SEGMENTS.has(segment));
+            if (skipEntry) {
+                return;
+            }
 
             const toIso = (value) => {
                 if (value instanceof Date && !Number.isNaN(value.getTime())) {
@@ -2255,6 +2529,54 @@ const server = http.createServer((req, res) => {
                 res.end(JSON.stringify({ success: false, error: err.message }));
             }
         });
+    } else if (requestUrl.pathname === '/api/mcp/config-files' && req.method === 'GET') {
+        try {
+            const files = listConfigFiles();
+            const active = getActiveConfigFiles().map((filePath) => ({
+                absolutePath: filePath,
+                relativePath: path.relative(PROJECT_ROOT, filePath),
+                fileName: path.basename(filePath)
+            }));
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                success: true,
+                directory: MCP_DIRECTORY,
+                files,
+                active
+            }));
+        } catch (err) {
+            console.error('[MCP] config-files list error', err);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+    } else if (requestUrl.pathname === '/api/mcp/config-files' && req.method === 'POST') {
+        let body = '';
+        req.on('data', (chunk) => {
+            body += chunk.toString();
+        });
+        req.on('end', () => {
+            try {
+                const payload = body ? JSON.parse(body) : {};
+                const files = Array.isArray(payload?.files) ? payload.files : [];
+                const activeFiles = setActiveConfigFiles(files).map((filePath) => ({
+                    absolutePath: filePath,
+                    relativePath: path.relative(PROJECT_ROOT, filePath),
+                    fileName: path.basename(filePath)
+                }));
+                const listed = listConfigFiles();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: true,
+                    directory: MCP_DIRECTORY,
+                    files: listed,
+                    active: activeFiles
+                }));
+            } catch (err) {
+                console.error('[MCP] config-files update error', err);
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        });
     } else if (requestUrl.pathname === '/api/mcp/categories' && req.method === 'GET') {
         try {
             const categories = listCategories();
@@ -2407,7 +2729,7 @@ const server = http.createServer((req, res) => {
             try {
                 const payload = body ? JSON.parse(body) : {};
                 console.log('[ImageRemix] request', payload.engine, payload.sourcePath);
-                const result = await imageRemix.runImageEdit(payload);
+                const result = await runImageEdit(payload);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify(result));
             } catch (err) {
@@ -2924,10 +3246,10 @@ const server = http.createServer((req, res) => {
                     return;
                 }
                 
-                const mcpConfigPath = process.env.KAMUI_CODE_CONFIG_PATH;
+                const mcpConfigPath = process.env.CLAUDE_MCP_CONFIG_PATH;
                 if (!mcpConfigPath || !fs.existsSync(mcpConfigPath)) {
                     res.writeHead(500);
-                    res.end(JSON.stringify({ error: 'Kamui Code configuration not found', path: mcpConfigPath }));
+                    res.end(JSON.stringify({ error: 'MCP configuration not found', path: mcpConfigPath }));
                     return;
                 }
                 
@@ -3168,8 +3490,8 @@ const server = http.createServer((req, res) => {
             }
         });
     } else if (requestUrl.pathname === '/api/claude/health' && req.method === 'GET') {
-        // Kamui Code headlessモード用ヘルスチェック
-        const mcpConfigPath = process.env.KAMUI_CODE_CONFIG_PATH;
+        // Claude headlessモード用ヘルスチェック
+        const mcpConfigPath = process.env.CLAUDE_MCP_CONFIG_PATH;
         const mcpExists = mcpConfigPath && fs.existsSync(mcpConfigPath);
         
         res.writeHead(200);
@@ -3195,8 +3517,8 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(data));
     } else if (requestUrl.pathname === '/api/claude/mcp/servers' && req.method === 'GET') {
-        // Kamui Code設定からサーバー一覧を返す
-        const mcpPath = process.env.KAMUI_CODE_CONFIG_PATH;
+        // MCP設定からサーバー一覧を返す
+        const mcpPath = process.env.CLAUDE_MCP_CONFIG_PATH;
         try {
             const servers = [];
             if (mcpPath && fs.existsSync(mcpPath)) {
@@ -3786,12 +4108,6 @@ if (!resolvedPort) {
     console.warn('[Server] PORT env var missing, defaulting to 7777');
 }
 const PORT = resolvedPort;
-
-// Kamui Code Showcase データの初期化（showcase/dataService.js に移動）
-showcase.initialize();
-
-// Image Remix の初期化
-imageRemix.initialize();
 
 process.on('beforeExit', () => {
     try {
