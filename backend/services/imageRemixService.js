@@ -6,10 +6,28 @@ const { ensureWithinScanPath, runPythonUpload } = require('./mediaUpload');
 
 const PROJECT_ROOT = path.join(__dirname, '..', '..');
 const PROTOCOL_VERSION = process.env.KAMUI_CODE_PROTOCOL_VERSION || '2025-06-18';
-const BASE_URL = process.env.KAMUI_CODE_BASE_URL || 'https://kamui-code.ai';
 const AUTH_TOKEN = process.env.KAMUI_CODE_AUTH_TOKEN || '';
 const IMAGE_REMIX_LOG_DIR = path.join(PROJECT_ROOT, 'logs', 'image-remix');
 const IMAGE_REMIX_STATE_PATH = path.join(IMAGE_REMIX_LOG_DIR, 'version-cache.json');
+
+function resolveServerUrl(pathOrUrl) {
+    if (/^https?:\/\//i.test(pathOrUrl)) {
+        if (pathOrUrl.includes('{BASE_URL}')) {
+            const base = (process.env.KAMUI_CODE_BASE_URL || '').trim();
+            if (!base) {
+                throw new Error('KAMUI_CODE_BASE_URL is not configured');
+            }
+            return pathOrUrl.replace('{BASE_URL}', base);
+        }
+        return pathOrUrl;
+    }
+
+    const base = (process.env.KAMUI_CODE_BASE_URL || '').trim();
+    if (!base) {
+        throw new Error('KAMUI_CODE_BASE_URL is not configured');
+    }
+    return `${base}${pathOrUrl}`;
+}
 
 let versionState = {};
 let versionStateLoaded = false;
@@ -382,7 +400,7 @@ async function runImageEdit({ engine, prompt, sourcePath, options = {} }) {
     const startAt = Date.now();
     const logs = [];
     const engineDef = ENGINE_DEFS[engine];
-    const serverUrl = `${BASE_URL}${engineDef.serverPath}`;
+    const serverUrl = resolveServerUrl(engineDef.serverPath);
 
     const absoluteSource = ensureWithinScanPath(sourcePath);
     logs.push(`Source: ${absoluteSource}`);

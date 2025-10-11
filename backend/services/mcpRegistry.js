@@ -22,6 +22,7 @@ const DEFAULT_CONFIG_PATH = (() => {
 const PROTOCOL_VERSION = process.env.KAMUI_CODE_PROTOCOL_VERSION || '2025-06-18';
 const AUTH_TOKEN = process.env.KAMUI_CODE_AUTH_TOKEN || '';
 const CACHE_TTL_MS = Number.parseInt(process.env.MCP_META_CACHE_TTL_MS || '600000', 10);
+const MCP_BASE_URL = (process.env.MCP_BASE_URL || process.env.KAMUI_CODE_BASE_URL || '').trim();
 
 const configCacheByFile = new Map();
 let activeConfigFiles = (() => {
@@ -83,13 +84,37 @@ function loadConfig() {
         : {};
       Object.entries(servers).forEach(([id, entry]) => {
         if (!id) return;
-        aggregated.mcpServers[id] = entry;
+        aggregated.mcpServers[id] = resolveEntryUrls(entry);
       });
     } catch (err) {
       console.error('[MCP] config load error', err);
     }
   });
   return aggregated;
+}
+
+function resolvePlaceholder(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (!url.includes('{BASE_URL}')) return url;
+  if (!MCP_BASE_URL) {
+    throw new Error('MCP_BASE_URL is required to resolve MCP configuration placeholders');
+  }
+  return url.replace('{BASE_URL}', MCP_BASE_URL);
+}
+
+function resolveEntryUrls(entry) {
+  if (!entry || typeof entry !== 'object') return entry;
+  const resolved = { ...entry };
+  if (resolved.url) {
+    resolved.url = resolvePlaceholder(resolved.url);
+  }
+  if (resolved.endpoint) {
+    resolved.endpoint = resolvePlaceholder(resolved.endpoint);
+  }
+  if (resolved.command) {
+    resolved.command = resolvePlaceholder(resolved.command);
+  }
+  return resolved;
 }
 
 function deriveCategory(serverId) {

@@ -3524,16 +3524,28 @@ const server = http.createServer((req, res) => {
             if (mcpPath && fs.existsSync(mcpPath)) {
                 const data = JSON.parse(fs.readFileSync(mcpPath, 'utf8'));
                 const raw = data.mcpServers || data.servers || {};
-                const baseUrl = process.env.MCP_BASE_URL || 'https://kamui-code.ai';
-                
+                const baseUrl = (process.env.MCP_BASE_URL || '').trim();
+
                 for (const [name, cfg] of Object.entries(raw)) {
                     if (!cfg || typeof cfg !== 'object') continue;
-                    // URLの{BASE_URL}を実際のベースURLに置換
-                    const url = (cfg.url || cfg.endpoint || cfg.command || '').replace('{BASE_URL}', baseUrl);
+                    const sourceUrl = cfg.url || cfg.endpoint || cfg.command || '';
+                    let resolvedUrl = sourceUrl;
+                    if (sourceUrl.includes('{BASE_URL}')) {
+                        if (!baseUrl) {
+                            console.warn('[MCP] Missing MCP_BASE_URL environment variable while resolving placeholders');
+                            res.writeHead(500);
+                            res.end(JSON.stringify({
+                                error: 'mcp_base_url_missing',
+                                message: 'MCP_BASE_URL is required to resolve {BASE_URL} placeholders'
+                            }));
+                            return;
+                        }
+                        resolvedUrl = sourceUrl.replace('{BASE_URL}', baseUrl);
+                    }
                     servers.push({
                         name: name,
                         type: cfg.type || cfg.kind || '',
-                        url: url,
+                        url: resolvedUrl,
                         description: cfg.description || cfg.comment || ''
                     });
                 }
